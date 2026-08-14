@@ -56,8 +56,8 @@ module adn_riscv_regfile #(
   // SIGNALS
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
-  logic [DATA_WIDTH-1:0] regs     [NUM_REG];  // Register file storage array
-  logic [DATA_WIDTH-1:0] regs_next[NUM_REG];  // Next state for register file
+  logic [NUM_REG-1:0][DATA_WIDTH-1:0] regs;  // Register file storage array
+  logic [NUM_REG-1:0][DATA_WIDTH-1:0] regs_next;  // Next state for register file
 
   if (LOCKS_EN) begin : gen_locks
     logic [NUM_REG-1:0] r;  // Current lock status register
