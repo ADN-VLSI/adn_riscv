@@ -1,19 +1,25 @@
 /*
 
 ### Purpose
-This module implements a parameterized RISC-V register file supporting multiple read and write ports, optional register locking mechanisms, and configurable data widths. It provides asynchronous reset capabilities and handles data forwarding for read-after-write hazards.
+This module implements a parameterized RISC-V register file supporting multiple read and write
+ports, optional register locking mechanisms, and configurable data widths. It provides asynchronous
+reset capabilities and handles data forwarding for read-after-write hazards.
 
 ### Use Case
-The `adn_riscv_regfile` is designed to serve as the primary architectural state storage in a RISC-V processor pipeline. Its primary use cases include:
+The `adn_riscv_regfile` is designed to serve as the primary architectural state storage in a RISC-V
+processor pipeline. Its primary use cases include:
 - **General Purpose Register (GPR) File:** Providing high-speed access for integer arithmetic units.
-- **Out-of-Order Execution:** Supporting multiple read/write ports to facilitate concurrent instruction dispatch and write-back.
-- **Hazard Management:** Utilizing internal forwarding logic to resolve data dependencies between dependent instructions in the pipeline.
-- **Resource Locking:** Enabling atomic operations or synchronization primitives by tracking register availability via the optional locking mechanism.
+- **Out-of-Order Execution:** Supporting multiple read/write ports to facilitate concurrent
+instruction dispatch and write-back.
+- **Hazard Management:** Utilizing internal forwarding logic to resolve data dependencies between
+dependent instructions in the pipeline.
+- **Resource Locking:** Enabling atomic operations or synchronization primitives by tracking
+register availability via the optional locking mechanism.
 
 | REVISION | DATE       | AUTHOR          | DESCRIPTION                                            |
 |----------|------------|-----------------|--------------------------------------------------------|
-| 0.1      | 2026-08-14 | Foez Ahmed | Initial version                                        |
-| 1.0      | 2026-08-14 | Foez Ahmed | Stable release                                         |
+| 0.1      | 2026-08-14 | Foez Ahmed      | Initial version                                        |
+| 1.0      | 2026-08-14 | Foez Ahmed      | Stable release                                         |
 
 Author : Foez Ahmed (foez.official@gmail.com)
 This file is part of ADN-VLSI/adn_template
@@ -24,38 +30,38 @@ See LICENSE file in the project root for full license information
 */
 
 module adn_riscv_regfile #(
-    parameter int NUM_RD     = 1,  // Number of write ports
-    parameter int NUM_RS     = 2,  // Number of read ports
-    parameter int NUM_REG    = 32, // Number of registers in the file
-    parameter int DATA_WIDTH = 64, // Width of each register in bits
-    parameter int NUM_ZERO   = 1,  // Number of hardwired zero registers
-    parameter bit LOCKS_EN   = 1   // Enable register locking mechanism
+    parameter int NUM_RD     = 1,   // Number of write ports
+    parameter int NUM_RS     = 2,   // Number of read ports
+    parameter int NUM_REG    = 32,  // Number of registers in the file
+    parameter int DATA_WIDTH = 64,  // Width of each register in bits
+    parameter int NUM_ZERO   = 1,   // Number of hardwired zero registers
+    parameter bit LOCKS_EN   = 1    // Enable register locking mechanism
 ) (
-    input logic arst_ni, // Asynchronous reset, active low
-    input logic clk_i,   // System clock
+    input logic arst_ni,  // Asynchronous reset, active low
+    input logic clk_i,    // System clock
 
-    input  logic [$clog2(NUM_REG)-1:0] rs_addr_i[NUM_RS], // Read source addresses
-    output logic [     DATA_WIDTH-1:0] rs_data_o[NUM_RS], // Read source data outputs
+    input  logic [$clog2(NUM_REG)-1:0] rs_addr_i[NUM_RS],  // Read source addresses
+    output logic [     DATA_WIDTH-1:0] rs_data_o[NUM_RS],  // Read source data outputs
 
-    input logic [$clog2(NUM_REG)-1:0] rd_addr_i[NUM_RD], // Write destination addresses
-    input logic [     DATA_WIDTH-1:0] rd_data_i[NUM_RD], // Write destination data inputs
-    input logic                       rd_we_i  [NUM_RD], // Write enable signals
+    input logic [$clog2(NUM_REG)-1:0] rd_addr_i[NUM_RD],  // Write destination addresses
+    input logic [     DATA_WIDTH-1:0] rd_data_i[NUM_RD],  // Write destination data inputs
+    input logic                       rd_we_i  [NUM_RD],  // Write enable signals
 
-    input  logic [$clog2(NUM_REG)-1:0] rl_addr_i[NUM_RD], // Register lock addresses
-    input  logic                       rl_we_i  [NUM_RD], // Register lock enable signals
-    output logic [        NUM_REG-1:0] locks_o            // Current lock status vector
+    input  logic [$clog2(NUM_REG)-1:0] rl_addr_i[NUM_RD],  // Register lock addresses
+    input  logic                       rl_we_i  [NUM_RD],  // Register lock enable signals
+    output logic [        NUM_REG-1:0] locks_o             // Current lock status vector
 );
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // SIGNALS
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
-  logic [DATA_WIDTH-1:0] regs     [NUM_REG]; // Register file storage array
-  logic [DATA_WIDTH-1:0] regs_next[NUM_REG]; // Next state for register file
+  logic [DATA_WIDTH-1:0] regs     [NUM_REG];  // Register file storage array
+  logic [DATA_WIDTH-1:0] regs_next[NUM_REG];  // Next state for register file
 
   if (LOCKS_EN) begin : gen_locks
-    logic [NUM_REG-1:0] r; // Current lock status register
-    logic [NUM_REG-1:0] w; // Next lock status logic
+    logic [NUM_REG-1:0] r;  // Current lock status register
+    logic [NUM_REG-1:0] w;  // Next lock status logic
   end
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
