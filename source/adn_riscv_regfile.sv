@@ -1,8 +1,14 @@
 /*
 
-@foez-bhai, write the purpose of this module in markdown format here. This is already in multi-line comment, so don't add any additional comment syntax.
+### Purpose
+This module implements a parameterized RISC-V register file supporting multiple read and write ports, optional register locking mechanisms, and configurable data widths. It provides asynchronous reset capabilities and handles data forwarding for read-after-write hazards.
 
-@foez-bhai, describe the use case of this module in markdown format here. This is already in multi-line comment, so don't add any additional comment syntax.
+### Use Case
+The `adn_riscv_regfile` is designed to serve as the primary architectural state storage in a RISC-V processor pipeline. Its primary use cases include:
+- **General Purpose Register (GPR) File:** Providing high-speed access for integer arithmetic units.
+- **Out-of-Order Execution:** Supporting multiple read/write ports to facilitate concurrent instruction dispatch and write-back.
+- **Hazard Management:** Utilizing internal forwarding logic to resolve data dependencies between dependent instructions in the pipeline.
+- **Resource Locking:** Enabling atomic operations or synchronization primitives by tracking register availability via the optional locking mechanism.
 
 | REVISION | DATE       | AUTHOR          | DESCRIPTION                                            |
 |----------|------------|-----------------|--------------------------------------------------------|
@@ -17,52 +23,51 @@ See LICENSE file in the project root for full license information
 
 */
 
-// @foez-bhai, add comments to the parameters, ports
 module adn_riscv_regfile #(
-    parameter int NUM_RD     = 1,
-    parameter int NUM_RS     = 2,
-    parameter int NUM_REG    = 32,
-    parameter int DATA_WIDTH = 64,
-    parameter int NUM_ZERO   = 1,
-    parameter bit LOCKS_EN   = 1
+    parameter int NUM_RD     = 1,  // Number of write ports
+    parameter int NUM_RS     = 2,  // Number of read ports
+    parameter int NUM_REG    = 32, // Number of registers in the file
+    parameter int DATA_WIDTH = 64, // Width of each register in bits
+    parameter int NUM_ZERO   = 1,  // Number of hardwired zero registers
+    parameter bit LOCKS_EN   = 1   // Enable register locking mechanism
 ) (
-    input logic arst_ni,
-    input logic clk_i,
+    input logic arst_ni, // Asynchronous reset, active low
+    input logic clk_i,   // System clock
 
-    input  logic [$clog2(NUM_REG)-1:0] rs_addr_i[NUM_RS],
-    output logic [     DATA_WIDTH-1:0] rs_data_o[NUM_RS],
+    input  logic [$clog2(NUM_REG)-1:0] rs_addr_i[NUM_RS], // Read source addresses
+    output logic [     DATA_WIDTH-1:0] rs_data_o[NUM_RS], // Read source data outputs
 
-    input logic [$clog2(NUM_REG)-1:0] rd_addr_i[NUM_RD],
-    input logic [     DATA_WIDTH-1:0] rd_data_i[NUM_RD],
-    input logic                       rd_we_i  [NUM_RD],
+    input logic [$clog2(NUM_REG)-1:0] rd_addr_i[NUM_RD], // Write destination addresses
+    input logic [     DATA_WIDTH-1:0] rd_data_i[NUM_RD], // Write destination data inputs
+    input logic                       rd_we_i  [NUM_RD], // Write enable signals
 
-    input  logic [$clog2(NUM_REG)-1:0] rl_addr_i[NUM_RD],
-    input  logic                       rl_we_i  [NUM_RD],
-    output logic [        NUM_REG-1:0] locks_o
+    input  logic [$clog2(NUM_REG)-1:0] rl_addr_i[NUM_RD], // Register lock addresses
+    input  logic                       rl_we_i  [NUM_RD], // Register lock enable signals
+    output logic [        NUM_REG-1:0] locks_o            // Current lock status vector
 );
-
-  // @foez-bhai, add comments to the functional blocks and signals
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // SIGNALS
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
-  logic [DATA_WIDTH-1:0] regs     [NUM_REG];
-  logic [DATA_WIDTH-1:0] regs_next[NUM_REG];
+  logic [DATA_WIDTH-1:0] regs     [NUM_REG]; // Register file storage array
+  logic [DATA_WIDTH-1:0] regs_next[NUM_REG]; // Next state for register file
 
   if (LOCKS_EN) begin : gen_locks
-    logic [NUM_REG-1:0] r;
-    logic [NUM_REG-1:0] w;
+    logic [NUM_REG-1:0] r; // Current lock status register
+    logic [NUM_REG-1:0] w; // Next lock status logic
   end
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // ASSIGNMENTS
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
+  // Read port logic with forwarding support
   always_comb begin
     foreach (rs_data_o[i]) begin
       rs_data_o[i] = regs[rs_addr_i[i]];
       foreach (rd_data_i[j]) begin
+        // Forwarding: check if read address matches pending write address
         if ((rs_addr_i[i] == rd_addr_i[j]) && rd_we_i[j]) begin
           rs_data_o[i] = rd_data_i[j];
         end
@@ -70,9 +75,11 @@ module adn_riscv_regfile #(
     end
   end
 
+  // Write port logic for register updates
   always_comb begin
     regs_next = regs;
     foreach (rd_data_i[i]) begin
+      // Skip zero register (index 0)
       for (int j = NUM_ZERO; j < NUM_REG; j++) begin
         if ((j == rd_addr_i[i]) && rd_we_i[i]) begin
           regs_next[j] = rd_data_i[i];
@@ -81,11 +88,13 @@ module adn_riscv_regfile #(
     end
   end
 
+  // Register locking logic
   if (LOCKS_EN) begin
     always_comb begin
       gen_locks.w = gen_locks.r;
 
-      foreach (rl_data_i[i]) begin
+      // Set lock on request
+      foreach (rl_addr_i[i]) begin
         for (int j = NUM_ZERO; j < NUM_REG; j++) begin
           if ((j == rl_addr_i[i]) && rl_we_i[i]) begin
             gen_locks.w[j] = '1;
@@ -93,6 +102,7 @@ module adn_riscv_regfile #(
         end
       end
 
+      // Clear lock on write-back
       foreach (rd_data_i[i]) begin
         for (int j = NUM_ZERO; j < NUM_REG; j++) begin
           if ((j == rd_addr_i[i]) && rd_we_i[i]) begin
@@ -107,11 +117,13 @@ module adn_riscv_regfile #(
   // SEQUENTIALS
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
+  // Register file state update
   always_ff @(posedge clk_i or negedge arst_ni) begin
     if (~arst_ni) regs <= '0;
     else regs <= regs_next;
   end
 
+  // Lock status state update
   if (LOCKS_EN) begin
     always_ff @(posedge clk_i or negedge arst_ni) begin
       if (~arst_ni) gen_locks.r <= '0;
@@ -123,4 +135,3 @@ module adn_riscv_regfile #(
   end
 
 endmodule
-
