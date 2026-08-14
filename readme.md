@@ -2,7 +2,6 @@
 
 ## SOURCE
 [`adn_riscv_regfile`](document/source/adn_riscv_regfile.md)
-[`document/source/dummy_rtl.md)
 
 [`adn_common_address_decoder`](https://github.com/ADN-VLSI/adn_common/blob/main/document/source/adn_common_address_decoder.md)
 [`adn_common_bin_to_gray`](https://github.com/ADN-VLSI/adn_common/blob/main/document/source/adn_common_bin_to_gray.md)
