@@ -39,18 +39,24 @@
 ## Description
 
 ### Purpose
-This module implements a parameterized RISC-V register file supporting multiple read and write ports, optional register locking mechanisms, and configurable data widths. It provides asynchronous reset capabilities and handles data forwarding for read-after-write hazards.
+This module implements a parameterized RISC-V register file supporting multiple read and write
+ports, optional register locking mechanisms, and configurable data widths. It provides asynchronous
+reset capabilities and handles data forwarding for read-after-write hazards.
 
 ### Use Case
-The `adn_riscv_regfile` is designed to serve as the primary architectural state storage in a RISC-V processor pipeline. Its primary use cases include:
+The `adn_riscv_regfile` is designed to serve as the primary architectural state storage in a RISC-V
+processor pipeline. Its primary use cases include:
 - **General Purpose Register (GPR) File:** Providing high-speed access for integer arithmetic units.
-- **Out-of-Order Execution:** Supporting multiple read/write ports to facilitate concurrent instruction dispatch and write-back.
-- **Hazard Management:** Utilizing internal forwarding logic to resolve data dependencies between dependent instructions in the pipeline.
-- **Resource Locking:** Enabling atomic operations or synchronization primitives by tracking register availability via the optional locking mechanism.
+- **Out-of-Order Execution:** Supporting multiple read/write ports to facilitate concurrent
+instruction dispatch and write-back.
+- **Hazard Management:** Utilizing internal forwarding logic to resolve data dependencies between
+dependent instructions in the pipeline.
+- **Resource Locking:** Enabling atomic operations or synchronization primitives by tracking
+register availability via the optional locking mechanism.
 
 | REVISION | DATE       | AUTHOR          | DESCRIPTION                                            |
 |----------|------------|-----------------|--------------------------------------------------------|
-| 0.1      | 2026-08-14 | Foez Ahmed | Initial version                                        |
-| 1.0      | 2026-08-14 | Foez Ahmed | Stable release                                         |
+| 0.1      | 2026-08-14 | Foez Ahmed      | Initial version                                        |
+| 1.0      | 2026-08-14 | Foez Ahmed      | Stable release                                         |
 
 Author : Foez Ahmed (foez.official@gmail.com)
