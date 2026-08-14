@@ -74,7 +74,9 @@ module adn_riscv_regfile #(
     regs_next = regs;
     foreach (rd_data_i[i]) begin
       for (int j = NUM_ZERO; j < NUM_REG; j++) begin
-        if ((j == rd_addr_i[i]) && rd_we_i[i]) regs_next[j] = rd_data_i[i];
+        if ((j == rd_addr_i[i]) && rd_we_i[i]) begin
+          regs_next[j] = rd_data_i[i];
+        end
       end
     end
   end
@@ -85,13 +87,17 @@ module adn_riscv_regfile #(
 
       foreach (rl_data_i[i]) begin
         for (int j = NUM_ZERO; j < NUM_REG; j++) begin
-          if ((j == rl_addr_i[i]) && rl_we_i[i]) gen_locks.w[j] = '1;
+          if ((j == rl_addr_i[i]) && rl_we_i[i]) begin
+            gen_locks.w[j] = '1;
+          end
         end
       end
 
       foreach (rd_data_i[i]) begin
         for (int j = NUM_ZERO; j < NUM_REG; j++) begin
-          if ((j == rd_addr_i[i]) && rd_we_i[i]) gen_locks.w[j] = '0;
+          if ((j == rd_addr_i[i]) && rd_we_i[i]) begin
+            gen_locks.w[j] = '0;
+          end
         end
       end
     end
