@@ -17,6 +17,7 @@
 |NUM_REG|int||32|Number of registers in the file|
 |DATA_WIDTH|int||64|Width of each register in bits|
 |NUM_ZERO|int||1|Number of hardwired zero registers|
+|OUTPUT_PL|bit||0|Enable output pipelining|
 |LOCKS_EN|bit||1|Enable register locking mechanism|
 
 
@@ -41,16 +42,17 @@
 ### Purpose
 This module implements a parameterized RISC-V register file supporting multiple read and write
 ports, optional register locking mechanisms, and configurable data widths. It provides asynchronous
-reset capabilities and handles data forwarding for read-after-write hazards.
+reset capabilities and handles transparent read-after-write behavior via internal combinatorial
+forwarding logic.
 
 ### Use Case
 The `adn_riscv_regfile` is designed to serve as the primary architectural state storage in a RISC-V
 processor pipeline. Its primary use cases include:
 - **General Purpose Register (GPR) File:** Providing high-speed access for integer arithmetic units.
-- **Out-of-Order Execution:** Supporting multiple read/write ports to facilitate concurrent
+- **Pipeline Integration:** Supporting multiple read/write ports to facilitate concurrent
 instruction dispatch and write-back.
-- **Hazard Management:** Utilizing internal forwarding logic to resolve data dependencies between
-dependent instructions in the pipeline.
+- **Hazard Management:** Utilizing internal combinatorial forwarding to ensure that read operations
+immediately reflect pending writes within the same cycle.
 - **Resource Locking:** Enabling atomic operations or synchronization primitives by tracking
 register availability via the optional locking mechanism.
 
@@ -58,5 +60,6 @@ register availability via the optional locking mechanism.
 |----------|------------|-----------------|--------------------------------------------------------|
 | 0.1      | 2026-08-14 | Foez Ahmed      | Initial version                                        |
 | 1.0      | 2026-08-14 | Foez Ahmed      | Stable release                                         |
+| 1.1      | 2026-08-15 | Foez Ahmed      | Added optional output pipelining feature               |
 
 Author : Foez Ahmed (foez.official@gmail.com)

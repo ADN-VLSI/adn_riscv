@@ -3,16 +3,17 @@
 ### Purpose
 This module implements a parameterized RISC-V register file supporting multiple read and write
 ports, optional register locking mechanisms, and configurable data widths. It provides asynchronous
-reset capabilities and handles data forwarding for read-after-write hazards.
+reset capabilities and handles transparent read-after-write behavior via internal combinatorial 
+forwarding logic.
 
 ### Use Case
 The `adn_riscv_regfile` is designed to serve as the primary architectural state storage in a RISC-V
 processor pipeline. Its primary use cases include:
 - **General Purpose Register (GPR) File:** Providing high-speed access for integer arithmetic units.
-- **Out-of-Order Execution:** Supporting multiple read/write ports to facilitate concurrent
+- **Pipeline Integration:** Supporting multiple read/write ports to facilitate concurrent
 instruction dispatch and write-back.
-- **Hazard Management:** Utilizing internal forwarding logic to resolve data dependencies between
-dependent instructions in the pipeline.
+- **Hazard Management:** Utilizing internal combinatorial forwarding to ensure that read operations 
+immediately reflect pending writes within the same cycle.
 - **Resource Locking:** Enabling atomic operations or synchronization primitives by tracking
 register availability via the optional locking mechanism.
 
@@ -20,6 +21,7 @@ register availability via the optional locking mechanism.
 |----------|------------|-----------------|--------------------------------------------------------|
 | 0.1      | 2026-08-14 | Foez Ahmed      | Initial version                                        |
 | 1.0      | 2026-08-14 | Foez Ahmed      | Stable release                                         |
+| 1.1      | 2026-08-15 | Foez Ahmed      | Added optional output pipelining feature               |
 
 Author : Foez Ahmed (foez.official@gmail.com)
 This file is part of ADN-VLSI/adn_template
@@ -28,13 +30,13 @@ Licensed under the MIT License
 See LICENSE file in the project root for full license information
 
 */
-
 module adn_riscv_regfile #(
     parameter int NUM_RD     = 1,   // Number of write ports
     parameter int NUM_RS     = 2,   // Number of read ports
     parameter int NUM_REG    = 32,  // Number of registers in the file
     parameter int DATA_WIDTH = 64,  // Width of each register in bits
     parameter int NUM_ZERO   = 1,   // Number of hardwired zero registers
+    parameter bit OUTPUT_PL  = 0,   // Enable output pipelining
     parameter bit LOCKS_EN   = 1    // Enable register locking mechanism
 ) (
     input logic arst_ni,  // Asynchronous reset, active low
@@ -68,8 +70,10 @@ module adn_riscv_regfile #(
   // ASSIGNMENTS
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
-  // Read port logic with forwarding support
-  always_comb foreach (rs_data_o[i]) rs_data_o[i] = regs_next[rs_addr_i[i]];
+  if (OUTPUT_PL)  // Read port logic without forwarding
+    always_comb foreach (rs_data_o[i]) rs_data_o[i] = regs[rs_addr_i[i]];
+  else  // Read port logic with forwarding support
+    always_comb foreach (rs_data_o[i]) rs_data_o[i] = regs_next[rs_addr_i[i]];
 
   // Write port logic for register updates
   always_comb begin
@@ -119,14 +123,21 @@ module adn_riscv_regfile #(
     else regs <= regs_next;
   end
 
-  // Lock status state update
-  if (LOCKS_EN) begin
+  // Lock status state update: Synchronizes the pending lock vector (w) to the 
+  // architectural lock register (r) on the rising clock edge, or resets to 
+  // zero on asynchronous reset. Provides either registered or combinatorial 
+  // output based on the OUTPUT_PL configuration.
+  if (LOCKS_EN) begin 
+    // Update the architectural lock register on clock edge or reset
     always_ff @(posedge clk_i or negedge arst_ni) begin
       if (~arst_ni) gen_locks.r <= '0;
       else gen_locks.r <= gen_locks.w;
     end
-    always_comb locks_o = gen_locks.w;
-  end else begin
+    // Select between registered (pipelined) or combinatorial (forwarded) lock status
+    if (OUTPUT_PL) always_comb locks_o = gen_locks.r; 
+    else always_comb locks_o = gen_locks.w; 
+  end else begin 
+    // If locking is disabled, drive lock output to zero
     always_comb locks_o = '0;
   end
 
