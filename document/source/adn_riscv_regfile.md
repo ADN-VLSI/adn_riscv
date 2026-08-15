@@ -17,7 +17,7 @@
 |NUM_REG|int||32|Number of registers in the file|
 |DATA_WIDTH|int||64|Width of each register in bits|
 |NUM_ZERO|int||1|Number of hardwired zero registers|
-|OUTPUT_PL|bit||0|@foez-bhai, add comments|
+|OUTPUT_PL|bit||0|Enable output pipelining|
 |LOCKS_EN|bit||1|Enable register locking mechanism|
 
 

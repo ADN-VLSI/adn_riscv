@@ -30,14 +30,13 @@ Licensed under the MIT License
 See LICENSE file in the project root for full license information
 
 */
-// @foez-bhai, add comments to missing paramters
 module adn_riscv_regfile #(
     parameter int NUM_RD     = 1,   // Number of write ports
     parameter int NUM_RS     = 2,   // Number of read ports
     parameter int NUM_REG    = 32,  // Number of registers in the file
     parameter int DATA_WIDTH = 64,  // Width of each register in bits
     parameter int NUM_ZERO   = 1,   // Number of hardwired zero registers
-    parameter bit OUTPUT_PL  = 0,
+    parameter bit OUTPUT_PL  = 0,   // Enable output pipelining
     parameter bit LOCKS_EN   = 1    // Enable register locking mechanism
 ) (
     input logic arst_ni,  // Asynchronous reset, active low
@@ -124,8 +123,10 @@ module adn_riscv_regfile #(
     else regs <= regs_next;
   end
 
-  // @foez-bhai, add more details to this comment below
-  // Lock status state update
+  // Lock status state update: Synchronizes the pending lock vector (w) to the 
+  // architectural lock register (r) on the rising clock edge, or resets to 
+  // zero on asynchronous reset. Provides either registered or combinatorial 
+  // output based on the OUTPUT_PL configuration.
   if (LOCKS_EN) begin
     always_ff @(posedge clk_i or negedge arst_ni) begin
       if (~arst_ni) gen_locks.r <= '0;
