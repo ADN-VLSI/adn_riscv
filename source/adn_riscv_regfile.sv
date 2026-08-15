@@ -127,14 +127,14 @@ module adn_riscv_regfile #(
   // architectural lock register (r) on the rising clock edge, or resets to 
   // zero on asynchronous reset. Provides either registered or combinatorial 
   // output based on the OUTPUT_PL configuration.
-  if (LOCKS_EN) begin
+  if (LOCKS_EN) begin // @foez-bhai, add comments here
     always_ff @(posedge clk_i or negedge arst_ni) begin
       if (~arst_ni) gen_locks.r <= '0;
       else gen_locks.r <= gen_locks.w;
     end
-    if (OUTPUT_PL) always_comb locks_o = gen_locks.r;
-    else always_comb locks_o = gen_locks.w;
-  end else begin
+    if (OUTPUT_PL) always_comb locks_o = gen_locks.r; // @foez-bhai, add comments here
+    else always_comb locks_o = gen_locks.w; // @foez-bhai, add comments here
+  end else begin // @foez-bhai, add comments here
     always_comb locks_o = '0;
   end
 
