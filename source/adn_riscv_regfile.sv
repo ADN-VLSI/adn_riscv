@@ -1,5 +1,7 @@
 /*
 
+@foez-bhai, update the purpose and use case to match the latests implementation
+
 ### Purpose
 This module implements a parameterized RISC-V register file supporting multiple read and write
 ports, optional register locking mechanisms, and configurable data widths. It provides asynchronous
@@ -20,6 +22,7 @@ register availability via the optional locking mechanism.
 |----------|------------|-----------------|--------------------------------------------------------|
 | 0.1      | 2026-08-14 | Foez Ahmed      | Initial version                                        |
 | 1.0      | 2026-08-14 | Foez Ahmed      | Stable release                                         |
+| 1.1      | 2026-08-15 | Foez Ahmed      | Added optional output pipelining feature               |
 
 Author : Foez Ahmed (foez.official@gmail.com)
 This file is part of ADN-VLSI/adn_template
@@ -35,6 +38,7 @@ module adn_riscv_regfile #(
     parameter int NUM_REG    = 32,  // Number of registers in the file
     parameter int DATA_WIDTH = 64,  // Width of each register in bits
     parameter int NUM_ZERO   = 1,   // Number of hardwired zero registers
+    parameter bit OUTPUT_PL  = 0,   // @foez-bhai, add comments
     parameter bit LOCKS_EN   = 1    // Enable register locking mechanism
 ) (
     input logic arst_ni,  // Asynchronous reset, active low
@@ -68,8 +72,11 @@ module adn_riscv_regfile #(
   // ASSIGNMENTS
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
+  // Read port logic without forwarding
+  if (OUTPUT_PL) always_comb foreach (rs_data_o[i]) rs_data_o[i] = regs[rs_addr_i[i]];
   // Read port logic with forwarding support
-  always_comb foreach (rs_data_o[i]) rs_data_o[i] = regs_next[rs_addr_i[i]];
+  else
+    always_comb foreach (rs_data_o[i]) rs_data_o[i] = regs_next[rs_addr_i[i]];
 
   // Write port logic for register updates
   always_comb begin
@@ -125,7 +132,8 @@ module adn_riscv_regfile #(
       if (~arst_ni) gen_locks.r <= '0;
       else gen_locks.r <= gen_locks.w;
     end
-    always_comb locks_o = gen_locks.w;
+    if (OUTPUT_PL) always_comb locks_o = gen_locks.r;
+    else always_comb locks_o = gen_locks.w;
   end else begin
     always_comb locks_o = '0;
   end
