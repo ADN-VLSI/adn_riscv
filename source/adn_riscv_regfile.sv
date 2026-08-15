@@ -30,14 +30,14 @@ Licensed under the MIT License
 See LICENSE file in the project root for full license information
 
 */
-
+// @foez-bhai, add comments to missing paramters
 module adn_riscv_regfile #(
     parameter int NUM_RD     = 1,   // Number of write ports
     parameter int NUM_RS     = 2,   // Number of read ports
     parameter int NUM_REG    = 32,  // Number of registers in the file
     parameter int DATA_WIDTH = 64,  // Width of each register in bits
     parameter int NUM_ZERO   = 1,   // Number of hardwired zero registers
-    parameter bit OUTPUT_PL  = 0,   // @foez-bhai, add comments
+    parameter bit OUTPUT_PL  = 0,
     parameter bit LOCKS_EN   = 1    // Enable register locking mechanism
 ) (
     input logic arst_ni,  // Asynchronous reset, active low
@@ -71,10 +71,9 @@ module adn_riscv_regfile #(
   // ASSIGNMENTS
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
-  // Read port logic without forwarding
-  if (OUTPUT_PL) always_comb foreach (rs_data_o[i]) rs_data_o[i] = regs[rs_addr_i[i]];
-  // Read port logic with forwarding support
-  else
+  if (OUTPUT_PL)  // Read port logic without forwarding
+    always_comb foreach (rs_data_o[i]) rs_data_o[i] = regs[rs_addr_i[i]];
+  else  // Read port logic with forwarding support
     always_comb foreach (rs_data_o[i]) rs_data_o[i] = regs_next[rs_addr_i[i]];
 
   // Write port logic for register updates
@@ -125,6 +124,7 @@ module adn_riscv_regfile #(
     else regs <= regs_next;
   end
 
+  // @foez-bhai, add more details to this comment below
   // Lock status state update
   if (LOCKS_EN) begin
     always_ff @(posedge clk_i or negedge arst_ni) begin
