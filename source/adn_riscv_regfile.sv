@@ -69,17 +69,7 @@ module adn_riscv_regfile #(
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
   // Read port logic with forwarding support
-  always_comb begin
-    foreach (rs_data_o[i]) begin
-      rs_data_o[i] = regs[rs_addr_i[i]];
-      foreach (rd_data_i[j]) begin
-        // Forwarding: check if read address matches pending write address
-        if ((rs_addr_i[i] == rd_addr_i[j]) && rd_we_i[j]) begin
-          rs_data_o[i] = rd_data_i[j];
-        end
-      end
-    end
-  end
+  always_comb foreach (rs_data_o[i]) rs_data_o[i] = regs_next[rs_addr_i[i]];
 
   // Write port logic for register updates
   always_comb begin
