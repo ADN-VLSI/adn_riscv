@@ -19,7 +19,7 @@
 <polygon points="10,595 10,585 30,585 40,595 60,595 40,595 30,605 10,605 10,595"/>
 <text x="65" y="585" dominant-baseline="hanging" text-anchor="start" font-size="20" style="fill:black;stroke:black;stroke-width:0">rl_addr_i</text>
 <polygon points="10,645 10,635 30,635 40,645 60,645 40,645 30,655 10,655 10,645"/>
-<text x="65" y="635" dominant-baseline="hanging" text-anchor="start" font-size="20" style="fill:black;stroke:black;stroke-width:0">rl_we_i</text>
+<text x="65" y="635" dominant-baseline="hanging" text-anchor="start" font-size="20" style="fill:black;stroke:black;stroke-width:0">rl_en_i</text>
 <polygon points="10,695 20,685 40,685 40,695 60,695 40,695 40,705 20,705 10,695"/>
 <text x="65" y="685" dominant-baseline="hanging" text-anchor="start" font-size="20" style="fill:black;stroke:black;stroke-width:0">locks_o</text>
 <text x="397" y="750" dominant-baseline="hanging" text-anchor="middle" font-size="30" style="fill:black;stroke:black;stroke-width:0">adn_riscv_regfile</text>
