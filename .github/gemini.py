@@ -14,7 +14,7 @@ from pathlib import Path
 DEFAULT_MODEL = "gemini-3.1-flash-lite"
 DEFAULT_MIN_INTERVAL = 22.0
 DIRECTIVE_PATTERN = re.compile(
-	r"(?m)(?:^|(?<=\s))(?://|#|--|/\*+|\*+)?\s*@foez-bhai\b(?P<instruction>.*)$"
+	r"(?m)^\s*(?://|#|--|/\*+|\*+)?\s*@foez-bhai\b(?P<instruction>.*)$"
 )
 
 
