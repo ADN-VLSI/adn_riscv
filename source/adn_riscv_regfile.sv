@@ -50,7 +50,7 @@ module adn_riscv_regfile #(
     input logic                       rd_we_i  [NUM_RD],  // Write enable signals
 
     input  logic [$clog2(NUM_REG)-1:0] rl_addr_i[NUM_RD],  // Register lock addresses
-    input  logic                       rl_we_i  [NUM_RD],  // Register lock enable signals
+    input  logic                       rl_en_i  [NUM_RD],  // Register lock enable signals
     output logic [        NUM_REG-1:0] locks_o             // Current lock status vector
 );
 
