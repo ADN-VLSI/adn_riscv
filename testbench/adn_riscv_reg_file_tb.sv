@@ -3,13 +3,15 @@
 | TEST CASE | DATE       | AUTHOR          | DESCRIPTION                                           |
 |-----------|------------|-----------------|-------------------------------------------------------|
 | TC_001    | 2026-08-16 | Motasim Faiyaz | Basic register write and read checks                   |
-| TC_002    | 2026-08-16 | Motasim Faiyaz | Zero register and lock behavior checks                 |
-| TC_003    | 2026-08-16 | Motasim Faiyaz | Boundary address and async reset checks                |
+| TC_002    | 2026-08-16 | Motasim Faiyaz | Zero register behavior checks                          |
+| TC_003    | 2026-08-16 | Motasim Faiyaz | Lock behavior and boundary address checks              |
+| TC_004    | 2026-08-16 | Motasim Faiyaz | Asynchronous reset checks                              |
 
 | REVISION | DATE       | AUTHOR          | DESCRIPTION                                            |
 |----------|------------|-----------------|--------------------------------------------------------|
-| 0.1      | 2026-08-16 | Motasim Faiyaz | Initial version                                        |
-| 1.0      | 2026-08-16 | Annim Jannat   | Stable release                                         |
+| 0.1      | 2026-08-16 | Motasim Faiyaz  | Initial version                            
+            |
+| 1.0      | 2026-08-16 | Annim Jannat    | Stable release                                         |
 
 Author : Annim Jannat (jannatannim@gmail.com)
 Co_Author: Motasim Faiyaz (motasimfaiyaz@gmail.com)
@@ -121,9 +123,9 @@ module adn_riscv_reg_file_tb;
     arst_n = 1'b0;
     clear_inputs();
     clk = 1'b0;
-    repeat (3) @(posedge clk);
+    repeat (3) @(negedge clk);
     arst_n = 1'b1;
-    repeat (2) @(posedge clk);
+    repeat (2) @(negedge clk);
   endtask
 
   task automatic drive_write(
@@ -144,6 +146,14 @@ module adn_riscv_reg_file_tb;
   );
     rl_addr_i[idx] = addr[AW-1:0];
     rl_we_i[idx]   = en;
+  endtask
+
+  task automatic disable_writes();
+    foreach (rd_we_i[i]) rd_we_i[i] = 1'b0;
+  endtask
+
+  task automatic disable_locks();
+    foreach (rl_we_i[i]) rl_we_i[i] = 1'b0;
   endtask
 
   task automatic tc_begin(input string name);
@@ -251,7 +261,7 @@ module adn_riscv_reg_file_tb;
 
     reset_dut();
 
-    // TC_001: basic write + immediate read forwarding
+    // TC_001: basic write, immediate forwarding, and registered readback
     tc_begin("TC_001_basic_rw");
     data_a = 64'hA5A5_A5A5_A5A5_A5A5;
     data_b = 64'h5A5A_5A5A_5A5A_5A5A;
@@ -261,11 +271,19 @@ module adn_riscv_reg_file_tb;
     rs_addr_i[1] = 7;
     #1;
     check_equal("TC_001_forwarding", rs_data_o[0], data_a);
+    @(posedge clk);
+    #1;
+    disable_writes();
+    #1;
+    check_equal("TC_001_committed_read", rs_data_o[0], data_a);
 
     drive_write(0, 7, data_b, 1'b1);
     rs_addr_i[0] = 7;
     #1;
     check_equal("TC_001_write_then_read", rs_data_o[0], data_b);
+    @(posedge clk);
+    #1;
+    disable_writes();
     tc_end();
 
     // TC_002: zero register is hardwired to zero
@@ -274,6 +292,9 @@ module adn_riscv_reg_file_tb;
     rs_addr_i[0] = 0;
     #1;
     check_equal("TC_002_zero_reg", rs_data_o[0], '0);
+    @(posedge clk);
+    #1;
+    disable_writes();
     tc_end();
 
     // TC_003: lock mechanism and boundary write/read
@@ -282,10 +303,14 @@ module adn_riscv_reg_file_tb;
       drive_lock(0, 8, 1'b1);
       @(posedge clk);
       #1;
+      disable_locks();
+      #1;
       check_bit("TC_003_lock_set", locks_o[8], 1'b1);
 
       drive_write(0, 8, 64'h1111_2222_3333_4444, 1'b1);
       @(posedge clk);
+      #1;
+      disable_writes();
       #1;
       check_bit("TC_003_lock_clear", locks_o[8], 1'b0);
       rs_addr_i[0] = 8;
@@ -297,15 +322,26 @@ module adn_riscv_reg_file_tb;
     rs_addr_i[0] = 31;
     #1;
     check_equal("TC_003_last_reg", rs_data_o[0], 64'hCAFE_F00D_0000_0001);
+    @(posedge clk);
+    #1;
+    disable_writes();
     tc_end();
 
     // TC_004: async reset mid-operation
     tc_begin("TC_004_async_reset");
-    drive_write(0, 10, 64'hFFFF_FFFF_FFFF_FFFF, 1'b1);
     if (LOCKS_EN) begin
       drive_lock(0, 10, 1'b1);
+      @(posedge clk);
+      #1;
+      disable_locks();
+      #1;
+      check_bit("TC_004_lock_before_reset", locks_o[10], 1'b1);
     end
+
+    drive_write(0, 10, 64'hFFFF_FFFF_FFFF_FFFF, 1'b1);
     @(posedge clk);
+    #1;
+    disable_writes();
     #2;
     arst_n = 1'b0;
     #2;
@@ -317,6 +353,7 @@ module adn_riscv_reg_file_tb;
     end
     arst_n = 1'b1;
     @(posedge clk);
+    clear_inputs();
     tc_end();
 
     print_tc_summary();
@@ -325,6 +362,7 @@ module adn_riscv_reg_file_tb;
       $display("TB PASS: adn_riscv_reg_file_tb");
     end else begin
       $display("TB FAIL: adn_riscv_reg_file_tb");
+      $fatal(1, "adn_riscv_reg_file_tb failed");
     end
     $finish;
   end
