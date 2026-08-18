@@ -33,7 +33,7 @@
 |rd_data_i|input|logic [ DATA_WIDTH-1:0]|[NUM_RD]|Write destination data inputs|
 |rd_we_i|input|logic|[NUM_RD]|Write enable signals|
 |rl_addr_i|input|logic [$clog2(NUM_REG)-1:0]|[NUM_RD]|Register lock addresses|
-|rl_we_i|input|logic|[NUM_RD]|Register lock enable signals|
+|rl_en_i|input|logic|[NUM_RD]|Register lock enable signals|
 |locks_o|output|logic [ NUM_REG-1:0]||Current lock status vector|
 
 

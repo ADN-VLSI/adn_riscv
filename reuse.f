@@ -1,5 +1,5 @@
-${ADN_TEMPLATE}/assertion/dummy_checker.sv
-${ADN_TEMPLATE}/interface/dummy_interface.sv
-${ADN_TEMPLATE}/source/adn_riscv_regfile.sv
+${ADN_RISCV}/assertion/dummy_checker.sv
+${ADN_RISCV}/interface/dummy_interface.sv
+${ADN_RISCV}/source/adn_riscv_regfile.sv
 -i ${ADN_COMMON}/include
--i ${ADN_TEMPLATE}/include
+-i ${ADN_RISCV}/include

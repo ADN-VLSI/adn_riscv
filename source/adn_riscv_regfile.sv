@@ -24,7 +24,7 @@ register availability via the optional locking mechanism.
 | 1.1      | 2026-08-15 | Foez Ahmed      | Added optional output pipelining feature               |
 
 Author : Foez Ahmed (foez.official@gmail.com)
-This file is part of ADN-VLSI/adn_template
+This file is part of ADN-VLSI/adn_riscv
 Copyright (c) 2026 ADN Semiconductors
 Licensed under the MIT License
 See LICENSE file in the project root for full license information
@@ -50,7 +50,7 @@ module adn_riscv_regfile #(
     input logic                       rd_we_i  [NUM_RD],  // Write enable signals
 
     input  logic [$clog2(NUM_REG)-1:0] rl_addr_i[NUM_RD],  // Register lock addresses
-    input  logic                       rl_we_i  [NUM_RD],  // Register lock enable signals
+    input  logic                       rl_en_i  [NUM_RD],  // Register lock enable signals
     output logic [        NUM_REG-1:0] locks_o             // Current lock status vector
 );
 
@@ -91,7 +91,17 @@ module adn_riscv_regfile #(
   // Register locking logic
   if (LOCKS_EN) begin
     always_comb begin
+
       gen_locks.w = gen_locks.r;
+
+      // Clear lock on write-back
+      foreach (rd_data_i[i]) begin
+        for (int j = NUM_ZERO; j < NUM_REG; j++) begin
+          if ((j == rd_addr_i[i]) && rd_we_i[i]) begin
+            gen_locks.w[j] = '0;
+          end
+        end
+      end
 
       // Set lock on request
       foreach (rl_addr_i[i]) begin
@@ -102,14 +112,6 @@ module adn_riscv_regfile #(
         end
       end
 
-      // Clear lock on write-back
-      foreach (rd_data_i[i]) begin
-        for (int j = NUM_ZERO; j < NUM_REG; j++) begin
-          if ((j == rd_addr_i[i]) && rd_we_i[i]) begin
-            gen_locks.w[j] = '0;
-          end
-        end
-      end
     end
   end
 
@@ -127,16 +129,16 @@ module adn_riscv_regfile #(
   // architectural lock register (r) on the rising clock edge, or resets to 
   // zero on asynchronous reset. Provides either registered or combinatorial 
   // output based on the OUTPUT_PL configuration.
-  if (LOCKS_EN) begin 
+  if (LOCKS_EN) begin
     // Update the architectural lock register on clock edge or reset
     always_ff @(posedge clk_i or negedge arst_ni) begin
       if (~arst_ni) gen_locks.r <= '0;
       else gen_locks.r <= gen_locks.w;
     end
     // Select between registered (pipelined) or combinatorial (forwarded) lock status
-    if (OUTPUT_PL) always_comb locks_o = gen_locks.r; 
-    else always_comb locks_o = gen_locks.w; 
-  end else begin 
+    if (OUTPUT_PL) always_comb locks_o = gen_locks.r;
+    else always_comb locks_o = gen_locks.w;
+  end else begin
     // If locking is disabled, drive lock output to zero
     always_comb locks_o = '0;
   end
