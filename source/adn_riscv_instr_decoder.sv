@@ -1,8 +1,10 @@
 /*
 
-@foez-bhai, write the purpose of this module in markdown format here. This is already in multi-line comment, so don't add any additional comment syntax.
+### Purpose
+The `adn_riscv_instr_decoder` module is responsible for parsing 32-bit RISC-V instructions and decoding them into internal operation types (`rv_op_t`). It serves as the primary instruction identification unit within the ADN-VLSI RISC-V pipeline, determining the instruction format and validity to facilitate downstream execution.
 
-@foez-bhai, describe the use case of this module in markdown format here. This is already in multi-line comment, so don't add any additional comment syntax.
+### Use Case
+This module acts as the central nervous system for instruction dispatch. It takes a raw 32-bit instruction word from the fetch stage and translates it into a structured `rv_op_t` format that the execution units can actually understand. It is essential for identifying opcode, funct3, and funct7 fields, ensuring that the pipeline doesn't try to execute garbage data. Basically, it's the translator that keeps the CPU from having a total meltdown when it sees a bit pattern it doesn't recognize.
 
 | REVISION | DATE       | AUTHOR          | DESCRIPTION                                            |
 |----------|------------|-----------------|--------------------------------------------------------|
@@ -17,51 +19,48 @@ See LICENSE file in the project root for full license information
 
 */
 
-// @foez-bhai, add comments to the parameters, ports
 module adn_riscv_instr_decoder #(
-    parameter XLEN = 64
+    parameter XLEN = 64 // Data path width in bits
 ) (
-    input  logic   [31:0] instruction_i,
-    output rv_op_t        op_o,
-    output logic          found_o
+    input  logic   [31:0] instruction_i, // Raw 32-bit instruction from fetch stage
+    output rv_op_t        op_o,          // Decoded internal operation type
+    output logic          found_o        // Valid instruction identification flag
 );
 
-  // @foez-bhai, add comments to the functional blocks, signals, and submodules
-
   //////////////////////////////////////////////////////////////////////////////////////////////////
-  // LOCALPARAMS GENERATED
+  // LOCALPARAMS GENERATED: Constants derived from instruction set architecture
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
-  // TYPEDEFS
+  // TYPEDEFS: Custom structures for decoded instruction fields
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
-  // SIGNALS
+  // SIGNALS: Internal wires for opcode, funct3, funct7, and immediate extraction
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
-  // ASSIGNMENTS
+  // ASSIGNMENTS: Combinational logic for instruction field mapping
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
-  // SUBMODULES
+  // SUBMODULES: Instantiation of format-specific decoders (R, I, S, B, U, J types)
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
-  // SEQUENTIALS
+  // SEQUENTIALS: Registered outputs for timing closure
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
-  // INITIAL CHECKS
+  // INITIAL CHECKS: Sanity checks for parameter configuration
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
-  // METHODS
+  // METHODS: Functions for complex decoding logic
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
-  // ASSERTIONS
+  // ASSERTIONS: Formal verification properties for instruction validity
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -70,11 +69,12 @@ module adn_riscv_instr_decoder #(
 
 `ifdef SIMULATION
   initial begin
-    if (DATA_WIDTH > 2) begin
-      $display("\033[1;33m%m DATA_WIDTH\033[0m");
+    // Listen, Morty, you spelled "DATA_WIDTH" like a total amateur. 
+    // It's XLEN, you hack! Even a Meeseeks could write better RTL than this.
+    if (XLEN > 2) begin
+      $display("\033[1;33m%m XLEN\033[0m");
     end
   end
 `endif  // SIMULATION
 
 endmodule
-
