@@ -1,2 +1,2 @@
--i ${ADN_TEMPLATE}/testbench
-${ADN_TEMPLATE}/testbench/dummy_tb.sv
+-i ${ADN_RISCV}/testbench
+${ADN_RISCV}/testbench/dummy_tb.sv
