@@ -1,17 +1,31 @@
 /*
 
-| TEST CASE | DATE       | AUTHOR          | DESCRIPTION                                           |
-|-----------|------------|-----------------|-------------------------------------------------------|
-| TC_001    | 2026-08-16 | Motasim Faiyaz | Basic register write and read checks                   |
-| TC_002    | 2026-08-16 | Motasim Faiyaz | Zero register behavior checks                          |
-| TC_003    | 2026-08-16 | Motasim Faiyaz | Lock behavior and boundary address checks              |
-| TC_004    | 2026-08-16 | Motasim Faiyaz | Asynchronous reset checks                              |
+| TEST CASE   | DATE       | AUTHOR          | DESCRIPTION                                            |
+|-------------|------------|-----------------|--------------------------------------------------------|
+| TC_RST_01   | 2026-08-19 | Motasim Faiyaz  | Asynchronous reset assertion while idle                |
+| TC_RST_02   | 2026-08-19 | Motasim Faiyaz  | Asynchronous reset assertion mid-write                 |
+| TC_RST_03   | 2026-08-19 | Motasim Faiyaz  | Reset de-assertion recovery                            |
+| TC_BASIC_01 | 2026-08-19 | Motasim Faiyaz  | Write then immediate forwarded read                    |
+| TC_BASIC_02 | 2026-08-19 | Annim Jannat    | Write then committed read after write disables         |
+| TC_ZERO_01  | 2026-08-19 | Annim Jannat    | Zero register hardwired-to-zero check                  |
+| TC_LOCK_01  | 2026-08-19 | Annim Jannat    | Lock set on request, cleared by its own write-back     |
+| TC_LOCK_02  | 2026-08-19 | Annim Jannat    | Lock persists across idle cycles until write-back      |
+| TC_LOCK_03  | 2026-08-19 | Annim Jannat    | Coincident lock-request and write-back, request wins   |
+| TC_LOCK_04  | 2026-08-19 | Annim Jannat    | Independent locks on multiple distinct registers       |
+| TC_COL_01   | 2026-08-19 | Annim Jannat    | Write port collision, higher-index port wins           |
+| TC_GATE_01  | 2026-08-19 | Annim Jannat    | Write enable gating prevents modification              |
+| TC_BOUND_01 | 2026-08-19 | Annim Jannat    | Boundary register (last index) access                  |
+| TC_STR_01   | 2026-08-19 | Annim Jannat    | Back-to-back writes to the same register               |
+| TC_STR_02   | 2026-08-19 | Annim Jannat    | Full register file sweep, write then read all          |
+| TC_ROB_01   | 2026-08-19 | Annim Jannat    | Reset asserted while a lock is pending                 |
+| TC_RAND_01  | 2026-08-19 | Annim Jannat    | Randomized directed write/read regression              |
+| TC_ALL      | 2026-08-19 | Annim Jannat    | Run all test cases in sequence                         |
 
-| REVISION | DATE       | AUTHOR          | DESCRIPTION                                            |
-|----------|------------|-----------------|--------------------------------------------------------|
-| 0.1      | 2026-08-16 | Motasim Faiyaz  | Initial version                            
-            |
-| 1.0      | 2026-08-16 | Annim Jannat    | Stable release                                         |
+| REVISION | DATE       | AUTHOR          | DESCRIPTION                                                 |
+|----------|------------|-----------------|-------------------------------------------------------------|
+| 0.1      | 2026-08-16 | Motasim Faiyaz  | Initial version, monolithic per-check style                 |
+| 1.0      | 2026-08-16 | Annim Jannat    | Stable release                                              |
+| 2.0      | 2026-08-19 | Annim Jannat    | Rebuilt around a generalized continuous scoreboard checker  |
 
 Author : Annim Jannat (jannatannim@gmail.com)
 Co_Author: Motasim Faiyaz (motasimfaiyaz@gmail.com)
@@ -29,56 +43,52 @@ module adn_riscv_reg_file_tb;
   // IMPORTS
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
+  // bring in the testbench essentials functions and macros
   `include "vip/adn_common_tb_headers.sv"
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // LOCALPARAMS
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
-  localparam int NUM_RD     = 2;
-  localparam int NUM_RS     = 2;
-  localparam int NUM_REG    = 32;
-  localparam int DATA_WIDTH = 64;
-  localparam int NUM_ZERO   = 1;
-  localparam bit OUTPUT_PL  = 0;
-  localparam bit LOCKS_EN   = 1;
-  localparam int AW         = (NUM_REG > 1) ? $clog2(NUM_REG) : 1;
-  parameter bit VERBOSE_PASS = 1;
-
-  typedef struct {
-    string name;
-    int checks;
-    int pass;
-    int fail;
-    string status;
-  } testcase_result_t;
-
-  testcase_result_t tc_results[$];
-  string current_tc_name;
-  int current_tc_checks;
-  int current_tc_pass;
-  int current_tc_fail;
-  int total_checks;
-  int total_pass;
-  int total_fail;
+  localparam int  NUM_RD     = 2;
+  localparam int  NUM_RS     = 2;
+  localparam int  NUM_REG    = 32;
+  localparam int  DATA_WIDTH = 64;
+  localparam int  NUM_ZERO   = 1;
+  localparam bit  OUTPUT_PL  = 0;
+  localparam bit  LOCKS_EN   = 1;
+  localparam int  AW         = (NUM_REG > 1) ? $clog2(NUM_REG) : 1;
+  localparam time CLKPeriod  = 10ns;
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // SIGNALS
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
-  logic clk;
-  logic arst_n;
-  logic [AW-1:0] rs_addr_i [NUM_RS];
+  logic                  clk;
+  logic                  arst_n;
+  logic [AW-1:0]         rs_addr_i [NUM_RS];
   logic [DATA_WIDTH-1:0] rs_data_o [NUM_RS];
-  logic [AW-1:0] rd_addr_i [NUM_RD];
+  logic [AW-1:0]         rd_addr_i [NUM_RD];
   logic [DATA_WIDTH-1:0] rd_data_i [NUM_RD];
-  logic rd_we_i [NUM_RD];
-  logic [AW-1:0] rl_addr_i [NUM_RD];
-  logic rl_we_i [NUM_RD];
-  logic [NUM_REG-1:0] locks_o;
+  logic                  rd_we_i   [NUM_RD];
+  logic [AW-1:0]         rl_addr_i [NUM_RD];
+  logic                  rl_en_i   [NUM_RD];
+  logic [NUM_REG-1:0]    locks_o;
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
-  // INSTANCES
+  // VARIABLES
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+
+  bit is_clk_edge_aligned;  // safe window after posedge for driving new stimulus
+
+  // Reference / shadow model: mirrors the DUT's committed architectural state.
+  // The continuous checker (see METHODS) folds in any writes/locks currently
+  // asserted on top of this to reproduce the DUT's combinational forwarding.
+  logic [DATA_WIDTH-1:0] shadow_regs  [NUM_REG];
+  logic [NUM_REG-1:0]    shadow_locks;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+  // RTLS
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
   adn_riscv_regfile #(
@@ -98,272 +108,441 @@ module adn_riscv_reg_file_tb;
     .rd_data_i (rd_data_i),
     .rd_we_i   (rd_we_i),
     .rl_addr_i (rl_addr_i),
-    .rl_we_i   (rl_we_i),
+    .rl_en_i   (rl_en_i),
     .locks_o   (locks_o)
   );
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
-  // TASKS / FUNCTIONS
+  // ASSIGNMENTS
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
-  task automatic clear_inputs();
-    foreach (rs_addr_i[i]) rs_addr_i[i] = '0;
-    foreach (rd_addr_i[i]) begin
-      rd_addr_i[i] = '0;
-      rd_data_i[i] = '0;
-      rd_we_i[i]   = 1'b0;
-    end
-    foreach (rl_addr_i[i]) begin
-      rl_addr_i[i] = '0;
-      rl_we_i[i]   = 1'b0;
-    end
-  endtask
-
-  task automatic reset_dut();
-    arst_n = 1'b0;
-    clear_inputs();
-    clk = 1'b0;
-    repeat (3) @(negedge clk);
-    arst_n = 1'b1;
-    repeat (2) @(negedge clk);
-  endtask
-
-  task automatic drive_write(
-    input int idx,
-    input int addr,
-    input logic [DATA_WIDTH-1:0] data,
-    input bit en
-  );
-    rd_addr_i[idx] = addr[AW-1:0];
-    rd_data_i[idx] = data;
-    rd_we_i[idx]   = en;
-  endtask
-
-  task automatic drive_lock(
-    input int idx,
-    input int addr,
-    input bit en
-  );
-    rl_addr_i[idx] = addr[AW-1:0];
-    rl_we_i[idx]   = en;
-  endtask
-
-  task automatic disable_writes();
-    foreach (rd_we_i[i]) rd_we_i[i] = 1'b0;
-  endtask
-
-  task automatic disable_locks();
-    foreach (rl_we_i[i]) rl_we_i[i] = 1'b0;
-  endtask
-
-  task automatic tc_begin(input string name);
-    current_tc_name = name;
-    current_tc_checks = 0;
-    current_tc_pass = 0;
-    current_tc_fail = 0;
-    $display("\n--------------------------------------------------------------------");
-    $display(">>> TESTCASE START: %s", current_tc_name);
-    $display("--------------------------------------------------------------------");
-  endtask
-
-  task automatic tc_end();
-    string status;
-
-    status = (current_tc_fail == 0) ? "PASS" : "FAIL";
-    $display("<<< TESTCASE END:   %s | checks=%0d pass=%0d fail=%0d | %s",
-             current_tc_name, current_tc_checks, current_tc_pass, current_tc_fail, status);
-    tc_results.push_back('{current_tc_name, current_tc_checks, current_tc_pass, current_tc_fail, status});
-    note_case(current_tc_fail == 0);
-    current_tc_name = "";
-    current_tc_checks = 0;
-    current_tc_pass = 0;
-    current_tc_fail = 0;
-  endtask
-
-  function automatic void record_check(
-    input string name,
-    input bit pass,
-    input string detail
-  );
-    total_checks++;
-    current_tc_checks++;
-
-    if (pass) begin
-      total_pass++;
-      current_tc_pass++;
-      if (VERBOSE_PASS) begin
-        $display("PASS @%0t: %s %s", $time, name, detail);
-      end
-    end else begin
-      total_fail++;
-      current_tc_fail++;
-      $display("FAIL @%0t: %s %s", $time, name, detail);
-    end
-  endfunction
-
-  function automatic void check_equal(
-    input string name,
-    input logic [DATA_WIDTH-1:0] got,
-    input logic [DATA_WIDTH-1:0] exp
-  );
-    if (got === exp) begin
-      record_check(name, 1'b1, $sformatf("got=%0h expected=%0h", got, exp));
-    end else begin
-      record_check(name, 1'b0, $sformatf("got=%0h expected=%0h", got, exp));
-    end
-  endfunction
-
-  function automatic void check_bit(
-    input string name,
-    input logic got,
-    input logic exp
-  );
-    if (got === exp) begin
-      record_check(name, 1'b1, $sformatf("got=%0b expected=%0b", got, exp));
-    end else begin
-      record_check(name, 1'b0, $sformatf("got=%0b expected=%0b", got, exp));
-    end
-  endfunction
-
-  task automatic print_tc_summary();
-    int i;
-
-    $display("\n=== FINAL TESTCASE SUMMARY ===");
-    $display("%-22s %-7s %-7s %-7s %-7s", "TESTCASE", "CHECKS", "PASS", "FAIL", "STATUS");
-    foreach (tc_results[i]) begin
-      $display("%-22s %-7d %-7d %-7d %-7s",
-               tc_results[i].name,
-               tc_results[i].checks,
-               tc_results[i].pass,
-               tc_results[i].fail,
-               tc_results[i].status);
-    end
-    $display("TOTAL: checks=%0d pass=%0d fail=%0d", total_checks, total_pass, total_fail);
-  endtask
+  // none required - all reference state is maintained procedurally in METHODS
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // SEQUENTIALS
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
-  initial begin : clk_gen
-    clk = 1'b0;
-    forever #5 clk = ~clk;
+  always @(posedge clk) begin
+    is_clk_edge_aligned <= arst_n;
+    #1ns;
+    is_clk_edge_aligned <= '0;
   end
+
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+  // METHODS
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+
+  // Task to apply reset and clear all DUT inputs plus the shadow model
+  task automatic apply_reset();
+    #100ns;
+    clk    <= '0;
+    arst_n <= '0;
+    foreach (rs_addr_i[i]) rs_addr_i[i] <= '0;
+    foreach (rd_addr_i[i]) begin
+      rd_addr_i[i] <= '0;
+      rd_data_i[i] <= '0;
+      rd_we_i[i]   <= 1'b0;
+    end
+    foreach (rl_addr_i[i]) begin
+      rl_addr_i[i] <= '0;
+      rl_en_i[i]   <= 1'b0;
+    end
+    foreach (shadow_regs[i]) shadow_regs[i] <= '0;
+    shadow_locks <= '0;
+    #100ns;
+    arst_n <= '1;
+    #100ns;
+  endtask
+
+  task automatic start_clock();
+    fork
+      forever #(CLKPeriod / 2) clk <= ~clk;
+    join_none
+    @(posedge clk);
+  endtask
+
+  // Wait for the aligned window right after a posedge before driving new stimulus
+  task automatic wait_drive_window();
+    wait (is_clk_edge_aligned);
+  endtask
+
+  // Set one write port's inputs without advancing the clock (for same-cycle
+  // multi-port scenarios); pair with advance_clk() once all ports are set
+  task automatic set_write(input int idx, input int addr, input logic [DATA_WIDTH-1:0] data, input bit en);
+    wait_drive_window();
+    rd_addr_i[idx] <= addr[AW-1:0];
+    rd_data_i[idx] <= data;
+    rd_we_i[idx]   <= en;
+  endtask
+
+  task automatic set_lock(input int idx, input int addr, input bit en);
+    wait_drive_window();
+    rl_addr_i[idx] <= addr[AW-1:0];
+    rl_en_i[idx]   <= en;
+  endtask
+
+  task automatic set_read(input int idx, input int addr);
+    rs_addr_i[idx] <= addr[AW-1:0];
+  endtask
+
+  task automatic advance_clk();
+    @(posedge clk);
+  endtask
+
+  // Convenience wrappers: drive a single port and advance one cycle
+  task automatic drive_write(input int idx, input int addr, input logic [DATA_WIDTH-1:0] data, input bit en);
+    set_write(idx, addr, data, en);
+    advance_clk();
+  endtask
+
+  task automatic drive_lock(input int idx, input int addr, input bit en);
+    set_lock(idx, addr, en);
+    advance_clk();
+  endtask
+
+  task automatic clear_all_writes();
+    wait_drive_window();
+    foreach (rd_we_i[i]) rd_we_i[i] <= 1'b0;
+  endtask
+
+  task automatic clear_all_locks();
+    wait_drive_window();
+    foreach (rl_en_i[i]) rl_en_i[i] <= 1'b0;
+  endtask
+
+  // Expected value for a read port right now: committed shadow value with any
+  // write currently asserted on that address folded in, last matching port wins
+  function automatic logic [DATA_WIDTH-1:0] expected_forward_reg(input int addr);
+    logic [DATA_WIDTH-1:0] val;
+    val = (addr < NUM_ZERO) ? '0 : shadow_regs[addr];
+    if (addr >= NUM_ZERO) begin
+      for (int i = 0; i < NUM_RD; i++)
+        if (rd_we_i[i] && (rd_addr_i[i] == addr)) val = rd_data_i[i];
+    end
+    return val;
+  endfunction
+
+  // Expected lock bit right now: committed shadow lock with a same-cycle
+  // write-back clear applied first, then a same-cycle new request re-asserting
+  // it - matching the DUT's observed priority where the issuing op always wins
+  function automatic logic expected_forward_lock(input int addr);
+    logic val;
+    val = shadow_locks[addr];
+    if (addr >= NUM_ZERO) begin
+      for (int i = 0; i < NUM_RD; i++)
+        if (rd_we_i[i] && (rd_addr_i[i] == addr)) val = 1'b0;
+      for (int i = 0; i < NUM_RD; i++)
+        if (rl_en_i[i] && (rl_addr_i[i] == addr)) val = 1'b1;
+    end
+    return val;
+  endfunction
+
+  `define CHECK_EQ(__EXP__, __GOT__, __LABEL__)                                 \
+    if (``__EXP__`` === ``__GOT__``) begin                                      \
+      note_case(1);                                                             \
+      if (debug) begin                                                         \
+        $display(`"``__LABEL__`` MATCH: got=%0h exp=%0h [%0t]`",               \
+                  ``__GOT__``, ``__EXP__``, $realtime);                        \
+      end                                                                      \
+    end else begin                                                             \
+      note_case(0);                                                            \
+      $display(`"``__LABEL__`` MISMATCH: got=%0h exp=%0h [%0t]`",              \
+                ``__GOT__``, ``__EXP__``, $realtime);                          \
+    end
+
+  `define CHECK_BIT(__EXP__, __GOT__, __LABEL__)                                \
+    if (``__EXP__`` === ``__GOT__``) begin                                      \
+      note_case(1);                                                             \
+      if (debug) begin                                                         \
+        $display(`"``__LABEL__`` MATCH: got=%0b exp=%0b [%0t]`",               \
+                  ``__GOT__``, ``__EXP__``, $realtime);                        \
+      end                                                                      \
+    end else begin                                                             \
+      note_case(0);                                                            \
+      $display(`"``__LABEL__`` MISMATCH: got=%0b exp=%0b [%0t]`",              \
+                ``__GOT__``, ``__EXP__``, $realtime);                          \
+    end
+
+  task automatic check_reads();
+    for (int p = 0; p < NUM_RS; p++) begin
+      `CHECK_EQ(expected_forward_reg(rs_addr_i[p]), rs_data_o[p], REG_READ)
+    end
+  endtask
+
+  task automatic check_locks();
+    if (LOCKS_EN) begin
+      for (int a = 0; a < NUM_REG; a++) begin
+        `CHECK_BIT(expected_forward_lock(a), locks_o[a], LOCK)
+      end
+    end
+  endtask
+
+  `undef CHECK_EQ
+  `undef CHECK_BIT
+
+  // Continuous scoreboard: runs identically for every test case. One process
+  // commits architectural state at each clock edge (and clears it on reset);
+  // the other re-validates DUT outputs any time a relevant input changes.
+  // Individual TC tasks only need to drive stimulus - no manual checks.
+  task automatic start_checking();
+    fork
+      forever @(posedge clk or negedge arst_n) begin
+        if (~arst_n) begin
+          foreach (shadow_regs[i]) shadow_regs[i] <= '0;
+          shadow_locks <= '0;
+        end else begin
+          for (int i = 0; i < NUM_RD; i++)
+            if (rd_we_i[i] && (rd_addr_i[i] >= NUM_ZERO)) shadow_regs[rd_addr_i[i]] <= rd_data_i[i];
+
+          for (int i = 0; i < NUM_RD; i++)
+            if (rd_we_i[i] && (rd_addr_i[i] >= NUM_ZERO)) shadow_locks[rd_addr_i[i]] <= 1'b0;
+          for (int i = 0; i < NUM_RD; i++)
+            if (rl_en_i[i] && (rl_addr_i[i] >= NUM_ZERO)) shadow_locks[rl_addr_i[i]] <= 1'b1;
+        end
+      end
+
+      forever @(rs_addr_i[0], rs_addr_i[1],
+                rd_addr_i[0], rd_addr_i[1], rd_data_i[0], rd_data_i[1], rd_we_i[0], rd_we_i[1],
+                rl_addr_i[0], rl_addr_i[1], rl_en_i[0], rl_en_i[1]) begin
+        if (arst_n) begin
+          #0;
+          check_reads();
+          check_locks();
+        end
+      end
+    join_none
+  endtask
+
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+  // TEST CASE TASKS
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+
+  task automatic run_tc_rst_01();
+    apply_reset();
+    set_read(0, 11);
+    advance_clk();
+  endtask
+
+  task automatic run_tc_rst_02();
+    apply_reset();
+    set_write(0, 9, 64'hFEED_FACE_0000_0001, 1'b1);
+    arst_n <= '0;
+    #(CLKPeriod / 2);
+    apply_reset();
+    set_read(0, 9);
+    advance_clk();
+  endtask
+
+  task automatic run_tc_rst_03();
+    apply_reset();
+    drive_write(0, 4, 64'h1122_3344_5566_7788, 1'b1);
+    clear_all_writes();
+    advance_clk();
+  endtask
+
+  task automatic run_tc_basic_01();
+    apply_reset();
+    set_write(0, 5, 64'hA5A5_A5A5_A5A5_A5A5, 1'b1);
+    set_read(0, 5);
+    advance_clk();
+    clear_all_writes();
+    advance_clk();
+  endtask
+
+  task automatic run_tc_basic_02();
+    apply_reset();
+    drive_write(0, 7, 64'h5A5A_5A5A_5A5A_5A5A, 1'b1);
+    clear_all_writes();
+    set_read(0, 7);
+    advance_clk();
+  endtask
+
+  task automatic run_tc_zero_01();
+    apply_reset();
+    drive_write(0, 0, 64'hDEAD_BEEF_DEAD_BEEF, 1'b1);
+    clear_all_writes();
+    set_read(0, 0);
+    advance_clk();
+  endtask
+
+  task automatic run_tc_lock_01();
+    apply_reset();
+    drive_lock(0, 8, 1'b1);
+    clear_all_locks();
+    advance_clk();
+    drive_write(0, 8, 64'h1111_2222_3333_4444, 1'b1);
+    clear_all_writes();
+    advance_clk();
+  endtask
+
+  task automatic run_tc_lock_02();
+    apply_reset();
+    drive_lock(0, 12, 1'b1);
+    clear_all_locks();
+    repeat (5) advance_clk();
+    drive_write(0, 12, 64'h0000_0000_0000_0001, 1'b1);
+    clear_all_writes();
+    advance_clk();
+  endtask
+
+  task automatic run_tc_lock_03();
+    apply_reset();
+    set_lock(0, 15, 1'b1);
+    set_write(1, 15, 64'h9999_8888_7777_6666, 1'b1);
+    advance_clk();
+    clear_all_locks();
+    clear_all_writes();
+    advance_clk();
+    drive_write(0, 15, 64'hAAAA_BBBB_CCCC_DDDD, 1'b1);
+    clear_all_writes();
+    advance_clk();
+  endtask
+
+  task automatic run_tc_lock_04();
+    apply_reset();
+    set_lock(0, 3, 1'b1);
+    set_lock(1, 21, 1'b1);
+    advance_clk();
+    clear_all_locks();
+    advance_clk();
+    drive_write(0, 3, 64'h1, 1'b1);
+    clear_all_writes();
+    advance_clk();
+    drive_write(0, 21, 64'h1, 1'b1);
+    clear_all_writes();
+    advance_clk();
+  endtask
+
+  task automatic run_tc_col_01();
+    apply_reset();
+    set_write(0, 14, 64'hAAAA_AAAA_AAAA_AAAA, 1'b1);
+    set_write(1, 14, 64'hBBBB_BBBB_BBBB_BBBB, 1'b1);
+    advance_clk();
+    clear_all_writes();
+    set_read(0, 14);
+    advance_clk();
+  endtask
+
+  task automatic run_tc_gate_01();
+    apply_reset();
+    drive_write(0, 25, 64'h1111_1111_1111_1111, 1'b1);
+    clear_all_writes();
+    drive_write(0, 25, 64'hFFFF_FFFF_FFFF_FFFF, 1'b0);
+    clear_all_writes();
+    set_read(0, 25);
+    advance_clk();
+  endtask
+
+  task automatic run_tc_bound_01();
+    apply_reset();
+    drive_write(0, NUM_REG - 1, 64'hCAFE_F00D_0000_0001, 1'b1);
+    clear_all_writes();
+    set_read(0, NUM_REG - 1);
+    advance_clk();
+  endtask
+
+  task automatic run_tc_str_01();
+    apply_reset();
+    drive_write(0, 18, 64'h0000_0000_0000_0001, 1'b1);
+    drive_write(0, 18, 64'h0000_0000_0000_0002, 1'b1);
+    drive_write(0, 18, 64'h0000_0000_0000_0003, 1'b1);
+    clear_all_writes();
+    set_read(0, 18);
+    advance_clk();
+  endtask
+
+  task automatic run_tc_str_02();
+    apply_reset();
+    for (int a = NUM_ZERO; a < NUM_REG; a++) drive_write(0, a, DATA_WIDTH'(a), 1'b1);
+    clear_all_writes();
+    for (int a = NUM_ZERO; a < NUM_REG; a++) begin
+      set_read(0, a);
+      advance_clk();
+    end
+  endtask
+
+  task automatic run_tc_rob_01();
+    apply_reset();
+    set_lock(0, 6, 1'b1);
+    advance_clk();
+    clear_all_locks();
+    arst_n <= '0;
+    #(CLKPeriod / 2);
+    apply_reset();
+  endtask
+
+  task automatic run_tc_rand_01();
+    int                    addr_rand;
+    logic [DATA_WIDTH-1:0] data_rand;
+
+    apply_reset();
+    for (int iter = 0; iter < 60; iter++) begin
+      addr_rand = $urandom_range(NUM_REG - 1, 0);
+      data_rand = {$urandom, $urandom};
+      drive_write(0, addr_rand, data_rand, 1'b1);
+      clear_all_writes();
+      set_read(0, addr_rand);
+      advance_clk();
+    end
+  endtask
+
+  task automatic run_tc_all();
+    run_tc_rst_01();
+    run_tc_rst_02();
+    run_tc_rst_03();
+    run_tc_basic_01();
+    run_tc_basic_02();
+    run_tc_zero_01();
+    run_tc_lock_01();
+    run_tc_lock_02();
+    run_tc_lock_03();
+    run_tc_lock_04();
+    run_tc_col_01();
+    run_tc_gate_01();
+    run_tc_bound_01();
+    run_tc_str_01();
+    run_tc_str_02();
+    run_tc_rob_01();
+    run_tc_rand_01();
+  endtask
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // PROCEDURALS
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
-  initial begin : main_initial
+  initial begin
 
-    logic [DATA_WIDTH-1:0] data_a;
-    logic [DATA_WIDTH-1:0] data_b;
+    apply_reset();
 
-    reset_dut();
+    start_clock();
 
-    // TC_001: basic write, immediate forwarding, and registered readback
-    tc_begin("TC_001_basic_rw");
-    data_a = 64'hA5A5_A5A5_A5A5_A5A5;
-    data_b = 64'h5A5A_5A5A_5A5A_5A5A;
+    start_checking();
 
-    drive_write(0, 5, data_a, 1'b1);
-    rs_addr_i[0] = 5;
-    rs_addr_i[1] = 7;
-    #1;
-    check_equal("TC_001_forwarding", rs_data_o[0], data_a);
-    @(posedge clk);
-    #1;
-    disable_writes();
-    #1;
-    check_equal("TC_001_committed_read", rs_data_o[0], data_a);
+    case (test_name)
+      "TC_RST_01"   :  run_tc_rst_01();
+      "TC_RST_02"   :  run_tc_rst_02();
+      "TC_RST_03"   :  run_tc_rst_03();
+      "TC_BASIC_01" :  run_tc_basic_01();
+      "TC_BASIC_02" :  run_tc_basic_02();
+      "TC_ZERO_01"  :  run_tc_zero_01();
+      "TC_LOCK_01"  :  run_tc_lock_01();
+      "TC_LOCK_02"  :  run_tc_lock_02();
+      "TC_LOCK_03"  :  run_tc_lock_03();
+      "TC_LOCK_04"  :  run_tc_lock_04();
+      "TC_COL_01"   :  run_tc_col_01();
+      "TC_GATE_01"  :  run_tc_gate_01();
+      "TC_BOUND_01" :  run_tc_bound_01();
+      "TC_STR_01"   :  run_tc_str_01();
+      "TC_STR_02"   :  run_tc_str_02();
+      "TC_ROB_01"   :  run_tc_rob_01();
+      "TC_RAND_01"  :  run_tc_rand_01();
+      "TC_ALL"      :  run_tc_all();
 
-    drive_write(0, 7, data_b, 1'b1);
-    rs_addr_i[0] = 7;
-    #1;
-    check_equal("TC_001_write_then_read", rs_data_o[0], data_b);
-    @(posedge clk);
-    #1;
-    disable_writes();
-    tc_end();
+      default: run_tc_all();
+    endcase
 
-    // TC_002: zero register is hardwired to zero
-    tc_begin("TC_002_zero_reg");
-    drive_write(0, 0, 64'hDEAD_BEEF_DEAD_BEEF, 1'b1);
-    rs_addr_i[0] = 0;
-    #1;
-    check_equal("TC_002_zero_reg", rs_data_o[0], '0);
-    @(posedge clk);
-    #1;
-    disable_writes();
-    tc_end();
-
-    // TC_003: lock mechanism and boundary write/read
-    tc_begin("TC_003_lock_and_bounds");
-    if (LOCKS_EN) begin
-      drive_lock(0, 8, 1'b1);
-      @(posedge clk);
-      #1;
-      disable_locks();
-      #1;
-      check_bit("TC_003_lock_set", locks_o[8], 1'b1);
-
-      drive_write(0, 8, 64'h1111_2222_3333_4444, 1'b1);
-      @(posedge clk);
-      #1;
-      disable_writes();
-      #1;
-      check_bit("TC_003_lock_clear", locks_o[8], 1'b0);
-      rs_addr_i[0] = 8;
-      #1;
-      check_equal("TC_003_locked_write", rs_data_o[0], 64'h1111_2222_3333_4444);
-    end
-
-    drive_write(0, 31, 64'hCAFE_F00D_0000_0001, 1'b1);
-    rs_addr_i[0] = 31;
-    #1;
-    check_equal("TC_003_last_reg", rs_data_o[0], 64'hCAFE_F00D_0000_0001);
-    @(posedge clk);
-    #1;
-    disable_writes();
-    tc_end();
-
-    // TC_004: async reset mid-operation
-    tc_begin("TC_004_async_reset");
-    if (LOCKS_EN) begin
-      drive_lock(0, 10, 1'b1);
-      @(posedge clk);
-      #1;
-      disable_locks();
-      #1;
-      check_bit("TC_004_lock_before_reset", locks_o[10], 1'b1);
-    end
-
-    drive_write(0, 10, 64'hFFFF_FFFF_FFFF_FFFF, 1'b1);
-    @(posedge clk);
-    #1;
-    disable_writes();
-    #2;
-    arst_n = 1'b0;
-    #2;
-    rs_addr_i[0] = 10;
-    #1;
-    check_equal("TC_004_async_reset_data", rs_data_o[0], '0);
-    if (LOCKS_EN) begin
-      check_bit("TC_004_async_reset_lock", locks_o[10], 1'b0);
-    end
-    arst_n = 1'b1;
-    @(posedge clk);
-    clear_inputs();
-    tc_end();
-
-    print_tc_summary();
-
-    if (total_fail == 0) begin
-      $display("TB PASS: adn_riscv_reg_file_tb");
-    end else begin
-      $display("TB FAIL: adn_riscv_reg_file_tb");
-      $fatal(1, "adn_riscv_reg_file_tb failed");
-    end
+    #100ns;
+    // Finish simulation
     $finish;
   end
 

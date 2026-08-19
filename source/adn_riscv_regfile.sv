@@ -106,7 +106,7 @@ module adn_riscv_regfile #(
       // Set lock on request
       foreach (rl_addr_i[i]) begin
         for (int j = NUM_ZERO; j < NUM_REG; j++) begin
-          if ((j == rl_addr_i[i]) && rl_we_i[i]) begin
+          if ((j == rl_addr_i[i]) && rl_en_i[i]) begin
             gen_locks.w[j] = '1;
           end
         end
