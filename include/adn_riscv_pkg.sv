@@ -1,3 +1,6 @@
+`ifndef __GUARD_ADN_RISCV_PKG_SV__
+`define __GUARD_ADN_RISCV_PKG_SV__ 0
+
 package adn_riscv_pkg;
 
   typedef enum logic [9:0] {
@@ -211,3 +214,5 @@ package adn_riscv_pkg;
   } decoded_instr_t;
 
 endpackage
+
+`endif

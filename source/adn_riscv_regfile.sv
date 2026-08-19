@@ -30,6 +30,7 @@ Licensed under the MIT License
 See LICENSE file in the project root for full license information
 
 */
+
 module adn_riscv_regfile #(
     parameter int NUM_RD     = 1,   // Number of write ports
     parameter int NUM_RS     = 2,   // Number of read ports

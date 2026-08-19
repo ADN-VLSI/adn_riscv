@@ -23,6 +23,8 @@ See LICENSE file in the project root for full license information
 
 */
 
+`include "adn_riscv_pkg.sv"
+
 module adn_riscv_instr_decoder
   import adn_riscv_pkg::*;
 #(
