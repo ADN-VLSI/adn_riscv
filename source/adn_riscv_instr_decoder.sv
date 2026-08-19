@@ -1,8 +1,14 @@
 /*
 
-@foez-bhai, write the purpose of this module in markdown format here. This is already in multi-line comment, so don't add any additional comment syntax.
+### Purpose
+This module serves as the instruction decoder for the ADN-RISC-V processor core. It takes a 32-bit encoded instruction as input and decodes it into a structured format (`decoded_instr_t`), identifying the operation type and extracting relevant immediate values and register indices based on the RISC-V ISA specifications.
 
-@foez-bhai, describe the use case of this module in markdown format here. This is already in multi-line comment, so don't add any additional comment syntax.
+### Use Case
+The `adn_riscv_instr_decoder` is a critical component in the instruction fetch/decode stage of the ADN-RISC-V pipeline. Its primary responsibilities include:
+- **Instruction Parsing**: Translating raw 32-bit binary instructions into a machine-readable `decoded_instr_t` struct.
+- **Immediate Extraction**: Calculating and sign-extending immediate values for various instruction formats (I, S, B, U, J types).
+- **Control Signal Generation**: Identifying the specific operation (e.g., ADD, LW, BEQ) to drive downstream execution units.
+- **ISA Flexibility**: Supporting optional RISC-V extensions (Zifencei, Zicsr, Math/M-extension, Atomics/A-extension, and Floating Point/F & D extensions) via parameter-driven logic.
 
 | REVISION | DATE       | AUTHOR          | DESCRIPTION                                            |
 |----------|------------|-----------------|--------------------------------------------------------|
@@ -17,21 +23,20 @@ See LICENSE file in the project root for full license information
 
 */
 
-// @foez-bhai, add comments to the parameters, ports
 module adn_riscv_instr_decoder
   import adn_riscv_pkg::*;
 #(
-    parameter int XLEN         = 64,
-    parameter bit EN_ZIFENCE_I = 1,
-    parameter bit EN_ZICSR     = 1,
-    parameter bit EN_MATH      = 1,
-    parameter bit EN_ATOMICS   = 1,
-    parameter bit EN_FLOAT     = 1,
-    parameter bit EN_DOUBLE    = 1
+    parameter int XLEN         = 64, // Data path width
+    parameter bit EN_ZIFENCE_I = 1,  // Enable Zifencei extension
+    parameter bit EN_ZICSR     = 1,  // Enable Zicsr extension
+    parameter bit EN_MATH      = 1,  // Enable M-extension
+    parameter bit EN_ATOMICS   = 1,  // Enable A-extension
+    parameter bit EN_FLOAT     = 1,  // Enable F-extension
+    parameter bit EN_DOUBLE    = 1   // Enable D-extension
 ) (
-    input  logic           [31:0] encoded_instr_i,
-    output decoded_instr_t        decoded_instr_o,
-    output logic                  found_o
+    input  logic           [31:0] encoded_instr_i, // Raw 32-bit instruction
+    output decoded_instr_t        decoded_instr_o, // Decoded instruction structure
+    output logic                  found_o          // Valid instruction detected
 );
 
  logic [31:0] aimm; // SHIFT AMOUNT
@@ -812,4 +817,3 @@ module adn_riscv_instr_decoder
   end
 
 endmodule
-

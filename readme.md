@@ -41,7 +41,7 @@
 [`adn_common_pmi_if`](https://github.com/ADN-VLSI/adn_common/blob/main/document/interface/adn_common_pmi_if.md)
 
 ## INCLUDE
-[`dummy.svh`](document/include/dummy.md)
+[`document/include/dummy.md)
 
 [`pmi/assign.svh`](https://github.com/ADN-VLSI/adn_common/blob/main/document/include/pmi/assign.md)
 [`pmi/typedef.svh`](https://github.com/ADN-VLSI/adn_common/blob/main/document/include/pmi/typedef.md)
