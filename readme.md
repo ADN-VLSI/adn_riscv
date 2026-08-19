@@ -1,6 +1,7 @@
 # Some Text
 
 ## SOURCE
+[`adn_riscv_instr_decoder`](document/source/adn_riscv_instr_decoder.md)
 [`adn_riscv_regfile`](document/source/adn_riscv_regfile.md)
 
 [`adn_common_address_decoder`](https://github.com/ADN-VLSI/adn_common/blob/main/document/source/adn_common_address_decoder.md)
@@ -41,7 +42,7 @@
 [`adn_common_pmi_if`](https://github.com/ADN-VLSI/adn_common/blob/main/document/interface/adn_common_pmi_if.md)
 
 ## INCLUDE
-[`document/include/dummy.md)
+[`adn_riscv_pkg.sv`](document/include/adn_riscv_pkg.md)
 
 [`pmi/assign.svh`](https://github.com/ADN-VLSI/adn_common/blob/main/document/include/pmi/assign.md)
 [`pmi/typedef.svh`](https://github.com/ADN-VLSI/adn_common/blob/main/document/include/pmi/typedef.md)
