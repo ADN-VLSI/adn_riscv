@@ -185,10 +185,8 @@ package adn_riscv_pkg;
     FMV_X_D,
     FCVT_D_L,
     FCVT_D_LU,
-    FMV_D_X,
+    FMV_D_X
 
-    // UNSUPPORTED INSTRUCTION
-    UNSUPPORTED_INSTRUCTION
   } rv_op_t;
 
   typedef enum logic [3:0] {
@@ -206,11 +204,14 @@ package adn_riscv_pkg;
 
   typedef struct packed {
     rv_op_t      op;
-    logic [4:0]  rd;
-    logic [4:0]  rs1;
-    logic [4:0]  rs2;
-    logic [4:0]  rs3;
+    logic [5:0]  rd;
+    logic [5:0]  rs1;
+    logic [5:0]  rs2;
+    logic [5:0]  rs3;
     logic [31:0] imm;
+    logic        pc;
+    logic        mem_op;
+    logic        blocking;
   } decoded_instr_t;
 
 endpackage
