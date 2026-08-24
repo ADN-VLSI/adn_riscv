@@ -24,17 +24,19 @@ See LICENSE file in the project root for full license information
 */
 
 `include "adn_riscv_pkg.sv"
+`include "adn_riscv/typedef.svh"
 
 module adn_riscv_instr_decoder
   import adn_riscv_pkg::*;
 #(
-    parameter int XLEN         = 64, // Data path width
-    parameter bit EN_ZIFENCE_I = 1,  // Enable Zifencei extension
-    parameter bit EN_ZICSR     = 1,  // Enable Zicsr extension
-    parameter bit EN_MATH      = 1,  // Enable M-extension
-    parameter bit EN_ATOMICS   = 1,  // Enable A-extension
-    parameter bit EN_FLOAT     = 1,  // Enable F-extension
-    parameter bit EN_DOUBLE    = 1   // Enable D-extension
+    parameter int XLEN             = 64,     // Data path width
+    parameter bit EN_ZIFENCE_I     = 1,      // Enable Zifencei extension
+    parameter bit EN_ZICSR         = 1,      // Enable Zicsr extension
+    parameter bit EN_MATH          = 1,      // Enable M-extension
+    parameter bit EN_ATOMICS       = 1,      // Enable A-extension
+    parameter bit EN_FLOAT         = 1,      // Enable F-extension
+    parameter bit EN_DOUBLE        = 1,      // Enable D-extension
+    parameter type decoded_instr_t = logic   // Decoded instruction structure type
 ) (
     input  logic           [31:0] encoded_instr_i, // Raw 32-bit instruction
     output decoded_instr_t        decoded_instr_o, // Decoded instruction structure

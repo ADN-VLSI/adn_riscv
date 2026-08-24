@@ -189,33 +189,6 @@ package adn_riscv_pkg;
 
   } rv_op_t;
 
-  typedef enum logic [3:0] {
-    NONE,  // NO IMMEDIATE
-    AIMM,  // SHIFT AMOUNT
-    BIMM,  // BTYPE INSTRUCTION IMMEDIATE
-    CIMM,  // CSR INSTRUCTION IMMEDIATE
-    IIMM,  // ITYPE INSTRUCTION IMMEDIATE
-    JIMM,  // JTYPE INSTRUCTION IMMEDIATE
-    RIMM,  // FLOATING ROUND MODE IMMEDIATE
-    SIMM,  // RTYPE INSTRUCTION IMMEDIATE
-    TIMM,  // ATOMICS IMMEDIATE
-    UIMM   // UTYPE INSTRUCTION IMMEDIATE
-  } imm_src_t;
-
-  // TODO PARAM
-  typedef struct packed {
-    rv_op_t      op;
-    logic [5:0]  rd;
-    logic [5:0]  rs1;
-    logic [5:0]  rs2;
-    logic [5:0]  rs3;
-    logic [31:0] imm;
-    logic [63:0] pc;
-    logic [63:0] reg_reqs;
-    logic        mem_op;
-    logic        blocking;
-  } decoded_instr_t;
-
 endpackage
 
 `endif
