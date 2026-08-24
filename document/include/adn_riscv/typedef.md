@@ -19,10 +19,15 @@ _None_
 ## Description
 
 # adn_riscv/typedef.svh 
-This file defines the core SystemVerilog data types, structures, and macros used throughout the ADN-RISCV architecture to ensure consistent data representation and type safety across the design.
+This file defines the core SystemVerilog data types, structures, and macros used throughout the
+ADN-RISCV architecture to ensure consistent data representation and type safety across the design.
 
 # adn_riscv/typedef.svh  Case
-This header file serves as the central repository for global type definitions and parameterized macros within the ADN-RISCV project. By centralizing these definitions, it enforces strict type consistency across different modules, prevents signal width mismatches, and simplifies the instantiation of complex instruction structures. It is intended to be included in all design units that require access to the architecture's standard data types and instruction formats.
+This header file serves as the central repository for global type definitions and parameterized
+macros within the ADN-RISCV project. By centralizing these definitions, it enforces strict type
+consistency across different modules, prevents signal width mismatches, and simplifies the
+instantiation of complex instruction structures. It is intended to be included in all design units
+that require access to the architecture's standard data types and instruction formats.
 
 | REVISION | DATE       | AUTHOR          | DESCRIPTION                                            |
 |----------|------------|-----------------|--------------------------------------------------------|

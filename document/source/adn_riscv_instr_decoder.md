@@ -19,6 +19,7 @@
 |EN_ATOMICS|bit||1|Enable A-extension|
 |EN_FLOAT|bit||1|Enable F-extension|
 |EN_DOUBLE|bit||1|Enable D-extension|
+|decoded_instr_t|type||logic||
 
 
 ## Ports
