@@ -3,7 +3,7 @@
 
 package adn_riscv_pkg;
 
-  typedef enum logic [9:0] {
+  typedef enum logic [7:0] {
     // INVALID
     INVALID_INSTRUCTION,
 
@@ -185,33 +185,9 @@ package adn_riscv_pkg;
     FMV_X_D,
     FCVT_D_L,
     FCVT_D_LU,
-    FMV_D_X,
+    FMV_D_X
 
-    // UNSUPPORTED INSTRUCTION
-    UNSUPPORTED_INSTRUCTION
   } rv_op_t;
-
-  typedef enum logic [3:0] {
-    NONE,  // NO IMMEDIATE
-    AIMM,  // SHIFT AMOUNT
-    BIMM,  // BTYPE INSTRUCTION IMMEDIATE
-    CIMM,  // CSR INSTRUCTION IMMEDIATE
-    IIMM,  // ITYPE INSTRUCTION IMMEDIATE
-    JIMM,  // JTYPE INSTRUCTION IMMEDIATE
-    RIMM,  // FLOATING ROUND MODE IMMEDIATE
-    SIMM,  // RTYPE INSTRUCTION IMMEDIATE
-    TIMM,  // ATOMICS IMMEDIATE
-    UIMM   // UTYPE INSTRUCTION IMMEDIATE
-  } imm_src_t;
-
-  typedef struct packed {
-    rv_op_t      op;
-    logic [4:0]  rd;
-    logic [4:0]  rs1;
-    logic [4:0]  rs2;
-    logic [4:0]  rs3;
-    logic [31:0] imm;
-  } decoded_instr_t;
 
 endpackage
 

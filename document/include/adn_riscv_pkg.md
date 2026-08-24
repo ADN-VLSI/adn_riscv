@@ -7,13 +7,6 @@
 _None_
 
 
-## Typedefs
-
-|Name|
-|-|
-|decoded_instr_t|
-
-
 ## Description
 
 _No top-level description found._
