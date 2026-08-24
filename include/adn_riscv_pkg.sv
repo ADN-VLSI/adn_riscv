@@ -3,7 +3,7 @@
 
 package adn_riscv_pkg;
 
-  typedef enum logic [9:0] {
+  typedef enum logic [7:0] {
     // INVALID
     INVALID_INSTRUCTION,
 
@@ -202,6 +202,7 @@ package adn_riscv_pkg;
     UIMM   // UTYPE INSTRUCTION IMMEDIATE
   } imm_src_t;
 
+  // TODO PARAM
   typedef struct packed {
     rv_op_t      op;
     logic [5:0]  rd;
@@ -209,7 +210,8 @@ package adn_riscv_pkg;
     logic [5:0]  rs2;
     logic [5:0]  rs3;
     logic [31:0] imm;
-    logic        pc;
+    logic [63:0] pc;
+    logic [63:0] reg_reqs;
     logic        mem_op;
     logic        blocking;
   } decoded_instr_t;

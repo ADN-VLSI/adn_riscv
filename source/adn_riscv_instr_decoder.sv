@@ -132,6 +132,14 @@ module adn_riscv_instr_decoder
     endcase
   end
 
+  always_comb begin
+    decoded_instr_o.reg_reqs = '0;
+    decoded_instr_o.reg_reqs[decoded_instr_o.rd]  = '1;
+    decoded_instr_o.reg_reqs[decoded_instr_o.rs1] = '1;
+    decoded_instr_o.reg_reqs[decoded_instr_o.rs2] = '1;
+    decoded_instr_o.reg_reqs[decoded_instr_o.rs3] = '1;
+  end
+
   `define INSTR_USAGE(_FUNC_, _IMM_SRC_, _F_RS3_, _F_RS2_, _F_RS1_, _F_RD_, _X_RS2_, _X_RS1_, _X_RD_, _MEM_, _BLK_)   \
     decoded_instr_o.op = ``_FUNC_``;                                                                                  \
     decoded_instr_o.imm = ``_IMM_SRC_``;                                                                              \
@@ -161,67 +169,67 @@ module adn_riscv_instr_decoder
     end
 
     if ((encoded_instr_i & 'b00000000000000000000000001111111) == 'b00000000000000000000000001101111) begin
-      `INSTR_USAGE(JAL, jimm, '0, '0, '0, '0, '0, '0, '1, '0, '0) // JAL
+      `INSTR_USAGE(JAL, jimm, '0, '0, '0, '0, '0, '0, '1, '0, '1) // JAL
     end
 
     if ((encoded_instr_i & 'b00000000000000000111000001111111) == 'b00000000000000000000000001100111) begin
-      `INSTR_USAGE(JALR, iimm, '0, '0, '0, '0, '0, '1, '1, '0, '0) // JALR
+      `INSTR_USAGE(JALR, iimm, '0, '0, '0, '0, '0, '1, '1, '0, '1) // JALR
     end
 
     if ((encoded_instr_i & 'b00000000000000000111000001111111) == 'b00000000000000000000000001100011) begin
-      `INSTR_USAGE(BEQ, bimm, '0, '0, '0, '0, '1, '1, '0, '0, '0) // BEQ
+      `INSTR_USAGE(BEQ, bimm, '0, '0, '0, '0, '1, '1, '0, '0, '1) // BEQ
     end
 
     if ((encoded_instr_i & 'b00000000000000000111000001111111) == 'b00000000000000000001000001100011) begin
-      `INSTR_USAGE(BNE, bimm, '0, '0, '0, '0, '1, '1, '0, '0, '0) // BNE
+      `INSTR_USAGE(BNE, bimm, '0, '0, '0, '0, '1, '1, '0, '0, '1) // BNE
     end
 
     if ((encoded_instr_i & 'b00000000000000000111000001111111) == 'b00000000000000000100000001100011) begin
-      `INSTR_USAGE(BLT, bimm, '0, '0, '0, '0, '1, '1, '0, '0, '0) // BLT
+      `INSTR_USAGE(BLT, bimm, '0, '0, '0, '0, '1, '1, '0, '0, '1) // BLT
     end
 
     if ((encoded_instr_i & 'b00000000000000000111000001111111) == 'b00000000000000000101000001100011) begin
-      `INSTR_USAGE(BGE, bimm, '0, '0, '0, '0, '1, '1, '0, '0, '0) // BGE
+      `INSTR_USAGE(BGE, bimm, '0, '0, '0, '0, '1, '1, '0, '0, '1) // BGE
     end
 
     if ((encoded_instr_i & 'b00000000000000000111000001111111) == 'b00000000000000000110000001100011) begin
-      `INSTR_USAGE(BLTU, bimm, '0, '0, '0, '0, '1, '1, '0, '0, '0) // BLTU
+      `INSTR_USAGE(BLTU, bimm, '0, '0, '0, '0, '1, '1, '0, '0, '1) // BLTU
     end
 
     if ((encoded_instr_i & 'b00000000000000000111000001111111) == 'b00000000000000000111000001100011) begin
-      `INSTR_USAGE(BGEU, bimm, '0, '0, '0, '0, '1, '1, '0, '0, '0) // BGEU
+      `INSTR_USAGE(BGEU, bimm, '0, '0, '0, '0, '1, '1, '0, '0, '1) // BGEU
     end
 
     if ((encoded_instr_i & 'b00000000000000000111000001111111) == 'b00000000000000000000000000000011) begin
-      `INSTR_USAGE(LB, iimm, '0, '0, '0, '0, '0, '1, '1, '0, '0) // LB
+      `INSTR_USAGE(LB, iimm, '0, '0, '0, '0, '0, '1, '1, '1, '0) // LB
     end
 
     if ((encoded_instr_i & 'b00000000000000000111000001111111) == 'b00000000000000000001000000000011) begin
-      `INSTR_USAGE(LH, iimm, '0, '0, '0, '0, '0, '1, '1, '0, '0) // LH
+      `INSTR_USAGE(LH, iimm, '0, '0, '0, '0, '0, '1, '1, '1, '0) // LH
     end
 
     if ((encoded_instr_i & 'b00000000000000000111000001111111) == 'b00000000000000000010000000000011) begin
-      `INSTR_USAGE(LW, iimm, '0, '0, '0, '0, '0, '1, '1, '0, '0) // LW
+      `INSTR_USAGE(LW, iimm, '0, '0, '0, '0, '0, '1, '1, '1, '0) // LW
     end
 
     if ((encoded_instr_i & 'b00000000000000000111000001111111) == 'b00000000000000000100000000000011) begin
-      `INSTR_USAGE(LBU, iimm, '0, '0, '0, '0, '0, '1, '1, '0, '0) // LBU
+      `INSTR_USAGE(LBU, iimm, '0, '0, '0, '0, '0, '1, '1, '1, '0) // LBU
     end
 
     if ((encoded_instr_i & 'b00000000000000000111000001111111) == 'b00000000000000000101000000000011) begin
-      `INSTR_USAGE(LHU, iimm, '0, '0, '0, '0, '0, '1, '1, '0, '0) // LHU
+      `INSTR_USAGE(LHU, iimm, '0, '0, '0, '0, '0, '1, '1, '1, '0) // LHU
     end
 
     if ((encoded_instr_i & 'b00000000000000000111000001111111) == 'b00000000000000000000000000100011) begin
-      `INSTR_USAGE(SB, simm, '0, '0, '0, '0, '1, '1, '0, '0, '0) // SB
+      `INSTR_USAGE(SB, simm, '0, '0, '0, '0, '1, '1, '0, '1, '0) // SB
     end
 
     if ((encoded_instr_i & 'b00000000000000000111000001111111) == 'b00000000000000000001000000100011) begin
-      `INSTR_USAGE(SH, simm, '0, '0, '0, '0, '1, '1, '0, '0, '0) // SH
+      `INSTR_USAGE(SH, simm, '0, '0, '0, '0, '1, '1, '0, '1, '0) // SH
     end
 
     if ((encoded_instr_i & 'b00000000000000000111000001111111) == 'b00000000000000000010000000100011) begin
-      `INSTR_USAGE(SW, simm, '0, '0, '0, '0, '1, '1, '0, '0, '0) // SW
+      `INSTR_USAGE(SW, simm, '0, '0, '0, '0, '1, '1, '0, '1, '0) // SW
     end
 
     if ((encoded_instr_i & 'b00000000000000000111000001111111) == 'b00000000000000000000000000010011) begin
@@ -301,15 +309,15 @@ module adn_riscv_instr_decoder
     end
 
     if ((encoded_instr_i & 'b00000000000000000111000001111111) == 'b00000000000000000000000000001111) begin
-      `INSTR_USAGE(FENCE, iimm, '0, '0, '0, '0, '0, '1, '1, '0, '0) // FENCE
+      `INSTR_USAGE(FENCE, iimm, '0, '0, '0, '0, '0, '1, '1, '1, '0) // FENCE
     end
 
     if ((encoded_instr_i & 'b11111111111111111111111111111111) == 'b00000000000000000000000001110011) begin
-      `INSTR_USAGE(ECALL, iimm, '0, '0, '0, '0, '0, '0, '0, '0, '0) // ECALL
+      `INSTR_USAGE(ECALL, iimm, '0, '0, '0, '0, '0, '0, '0, '0, '1) // ECALL
     end
 
     if ((encoded_instr_i & 'b11111111111111111111111111111111) == 'b00000000000100000000000001110011) begin
-      `INSTR_USAGE(EBREAK, iimm, '0, '0, '0, '0, '0, '0, '0, '0, '0) // EBREAK
+      `INSTR_USAGE(EBREAK, iimm, '0, '0, '0, '0, '0, '0, '0, '0, '1) // EBREAK
     end
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -319,15 +327,15 @@ module adn_riscv_instr_decoder
     if (XLEN > 32) begin
 
       if ((encoded_instr_i & 'b00000000000000000111000001111111) == 'b00000000000000000110000000000011) begin
-        `INSTR_USAGE(LWU, iimm, '0, '0, '0, '0, '0, '1, '1, '0, '0) // LWU
+        `INSTR_USAGE(LWU, iimm, '0, '0, '0, '0, '0, '1, '1, '1, '0) // LWU
       end
 
       if ((encoded_instr_i & 'b00000000000000000111000001111111) == 'b00000000000000000011000000000011) begin
-        `INSTR_USAGE(LD, iimm, '0, '0, '0, '0, '0, '1, '1, '0, '0) // LD
+        `INSTR_USAGE(LD, iimm, '0, '0, '0, '0, '0, '1, '1, '1, '0) // LD
       end
 
       if ((encoded_instr_i & 'b00000000000000000111000001111111) == 'b00000000000000000011000000100011) begin
-        `INSTR_USAGE(SD, simm, '0, '0, '0, '0, '1, '1, '0, '0, '0) // SD
+        `INSTR_USAGE(SD, simm, '0, '0, '0, '0, '1, '1, '0, '1, '0) // SD
       end
 
       if ((encoded_instr_i & 'b00000000000000000111000001111111) == 'b00000000000000000000000000011011) begin
@@ -374,7 +382,7 @@ module adn_riscv_instr_decoder
 
     if (EN_ZIFENCE_I) begin
       if ((encoded_instr_i & 'b00000000000000000111000001111111) == 'b00000000000000000001000000001111) begin
-        `INSTR_USAGE(FENCE_I, iimm, '0, '0, '0, '0, '0, '1, '1, '0, '0) // FENCE_I
+        `INSTR_USAGE(FENCE_I, iimm, '0, '0, '0, '0, '0, '1, '1, '1, '0) // FENCE_I
       end
     end
 
@@ -485,47 +493,47 @@ module adn_riscv_instr_decoder
     if (EN_ATOMICS) begin
 
       if ((encoded_instr_i & 'b11111001111100000111000001111111) == 'b00010000000000000010000000101111) begin
-        `INSTR_USAGE(LR_W, timm, '0, '0, '0, '0, '0, '1, '1, '0, '0) // LR_W
+        `INSTR_USAGE(LR_W, timm, '0, '0, '0, '0, '0, '1, '1, '1, '0) // LR_W
       end
 
       if ((encoded_instr_i & 'b11111000000000000111000001111111) == 'b00011000000000000010000000101111) begin
-        `INSTR_USAGE(SC_W, timm, '0, '0, '0, '0, '1, '1, '1, '0, '0) // SC_W
+        `INSTR_USAGE(SC_W, timm, '0, '0, '0, '0, '1, '1, '1, '1, '0) // SC_W
       end
 
       if ((encoded_instr_i & 'b11111000000000000111000001111111) == 'b00001000000000000010000000101111) begin
-        `INSTR_USAGE(AMOSWAP_W, timm, '0, '0, '0, '0, '1, '1, '1, '0, '0) // AMOSWAP_W
+        `INSTR_USAGE(AMOSWAP_W, timm, '0, '0, '0, '0, '1, '1, '1, '1, '0) // AMOSWAP_W
       end
 
       if ((encoded_instr_i & 'b11111000000000000111000001111111) == 'b00000000000000000010000000101111) begin
-        `INSTR_USAGE(AMOADD_W, timm, '0, '0, '0, '0, '1, '1, '1, '0, '0) // AMOADD_W
+        `INSTR_USAGE(AMOADD_W, timm, '0, '0, '0, '0, '1, '1, '1, '1, '0) // AMOADD_W
       end
 
       if ((encoded_instr_i & 'b11111000000000000111000001111111) == 'b00100000000000000010000000101111) begin
-        `INSTR_USAGE(AMOXOR_W, timm, '0, '0, '0, '0, '1, '1, '1, '0, '0) // AMOXOR_W
+        `INSTR_USAGE(AMOXOR_W, timm, '0, '0, '0, '0, '1, '1, '1, '1, '0) // AMOXOR_W
       end
 
       if ((encoded_instr_i & 'b11111000000000000111000001111111) == 'b01100000000000000010000000101111) begin
-        `INSTR_USAGE(AMOAND_W, timm, '0, '0, '0, '0, '1, '1, '1, '0, '0) // AMOAND_W
+        `INSTR_USAGE(AMOAND_W, timm, '0, '0, '0, '0, '1, '1, '1, '1, '0) // AMOAND_W
       end
 
       if ((encoded_instr_i & 'b11111000000000000111000001111111) == 'b01000000000000000010000000101111) begin
-        `INSTR_USAGE(AMOOR_W, timm, '0, '0, '0, '0, '1, '1, '1, '0, '0) // AMOOR_W
+        `INSTR_USAGE(AMOOR_W, timm, '0, '0, '0, '0, '1, '1, '1, '1, '0) // AMOOR_W
       end
 
       if ((encoded_instr_i & 'b11111000000000000111000001111111) == 'b10000000000000000010000000101111) begin
-        `INSTR_USAGE(AMOMIN_W, timm, '0, '0, '0, '0, '1, '1, '1, '0, '0) // AMOMIN_W
+        `INSTR_USAGE(AMOMIN_W, timm, '0, '0, '0, '0, '1, '1, '1, '1, '0) // AMOMIN_W
       end
 
       if ((encoded_instr_i & 'b11111000000000000111000001111111) == 'b10100000000000000010000000101111) begin
-        `INSTR_USAGE(AMOMAX_W, timm, '0, '0, '0, '0, '1, '1, '1, '0, '0) // AMOMAX_W
+        `INSTR_USAGE(AMOMAX_W, timm, '0, '0, '0, '0, '1, '1, '1, '1, '0) // AMOMAX_W
       end
 
       if ((encoded_instr_i & 'b11111000000000000111000001111111) == 'b11000000000000000010000000101111) begin
-        `INSTR_USAGE(AMOMINU_W, timm, '0, '0, '0, '0, '1, '1, '1, '0, '0) // AMOMINU_W
+        `INSTR_USAGE(AMOMINU_W, timm, '0, '0, '0, '0, '1, '1, '1, '1, '0) // AMOMINU_W
       end
 
       if ((encoded_instr_i & 'b11111000000000000111000001111111) == 'b11100000000000000010000000101111) begin
-        `INSTR_USAGE(AMOMAXU_W, timm, '0, '0, '0, '0, '1, '1, '1, '0, '0) // AMOMAXU_W
+        `INSTR_USAGE(AMOMAXU_W, timm, '0, '0, '0, '0, '1, '1, '1, '1, '0) // AMOMAXU_W
       end
 
       ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -535,47 +543,47 @@ module adn_riscv_instr_decoder
       if (XLEN > 64) begin
 
         if ((encoded_instr_i & 'b11111001111100000111000001111111) == 'b00010000000000000011000000101111) begin
-          `INSTR_USAGE(LR_D, timm, '0, '0, '0, '0, '0, '1, '1, '0, '0) // LR_D
+          `INSTR_USAGE(LR_D, timm, '0, '0, '0, '0, '0, '1, '1, '1, '0) // LR_D
         end
 
         if ((encoded_instr_i & 'b11111000000000000111000001111111) == 'b00011000000000000011000000101111) begin
-          `INSTR_USAGE(SC_D, timm, '0, '0, '0, '0, '1, '1, '1, '0, '0) // SC_D
+          `INSTR_USAGE(SC_D, timm, '0, '0, '0, '0, '1, '1, '1, '1, '0) // SC_D
         end
 
         if ((encoded_instr_i & 'b11111000000000000111000001111111) == 'b00001000000000000011000000101111) begin
-          `INSTR_USAGE(AMOSWAP_D, timm, '0, '0, '0, '0, '1, '1, '1, '0, '0) // AMOSWAP_D
+          `INSTR_USAGE(AMOSWAP_D, timm, '0, '0, '0, '0, '1, '1, '1, '1, '0) // AMOSWAP_D
         end
 
         if ((encoded_instr_i & 'b11111000000000000111000001111111) == 'b00000000000000000011000000101111) begin
-          `INSTR_USAGE(AMOADD_D, timm, '0, '0, '0, '0, '1, '1, '1, '0, '0) // AMOADD_D
+          `INSTR_USAGE(AMOADD_D, timm, '0, '0, '0, '0, '1, '1, '1, '1, '0) // AMOADD_D
         end
 
         if ((encoded_instr_i & 'b11111000000000000111000001111111) == 'b00100000000000000011000000101111) begin
-          `INSTR_USAGE(AMOXOR_D, timm, '0, '0, '0, '0, '1, '1, '1, '0, '0) // AMOXOR_D
+          `INSTR_USAGE(AMOXOR_D, timm, '0, '0, '0, '0, '1, '1, '1, '1, '0) // AMOXOR_D
         end
 
         if ((encoded_instr_i & 'b11111000000000000111000001111111) == 'b01100000000000000011000000101111) begin
-          `INSTR_USAGE(AMOAND_D, timm, '0, '0, '0, '0, '1, '1, '1, '0, '0) // AMOAND_D
+          `INSTR_USAGE(AMOAND_D, timm, '0, '0, '0, '0, '1, '1, '1, '1, '0) // AMOAND_D
         end
 
         if ((encoded_instr_i & 'b11111000000000000111000001111111) == 'b01000000000000000011000000101111) begin
-          `INSTR_USAGE(AMOOR_D, timm, '0, '0, '0, '0, '1, '1, '1, '0, '0) // AMOOR_D
+          `INSTR_USAGE(AMOOR_D, timm, '0, '0, '0, '0, '1, '1, '1, '1, '0) // AMOOR_D
         end
 
         if ((encoded_instr_i & 'b11111000000000000111000001111111) == 'b10000000000000000011000000101111) begin
-          `INSTR_USAGE(AMOMIN_D, timm, '0, '0, '0, '0, '1, '1, '1, '0, '0) // AMOMIN_D
+          `INSTR_USAGE(AMOMIN_D, timm, '0, '0, '0, '0, '1, '1, '1, '1, '0) // AMOMIN_D
         end
 
         if ((encoded_instr_i & 'b11111000000000000111000001111111) == 'b10100000000000000011000000101111) begin
-          `INSTR_USAGE(AMOMAX_D, timm, '0, '0, '0, '0, '1, '1, '1, '0, '0) // AMOMAX_D
+          `INSTR_USAGE(AMOMAX_D, timm, '0, '0, '0, '0, '1, '1, '1, '1, '0) // AMOMAX_D
         end
 
         if ((encoded_instr_i & 'b11111000000000000111000001111111) == 'b11000000000000000011000000101111) begin
-          `INSTR_USAGE(AMOMINU_D, timm, '0, '0, '0, '0, '1, '1, '1, '0, '0) // AMOMINU_D
+          `INSTR_USAGE(AMOMINU_D, timm, '0, '0, '0, '0, '1, '1, '1, '1, '0) // AMOMINU_D
         end
 
         if ((encoded_instr_i & 'b11111000000000000111000001111111) == 'b11100000000000000011000000101111) begin
-          `INSTR_USAGE(AMOMAXU_D, timm, '0, '0, '0, '0, '1, '1, '1, '0, '0) // AMOMAXU_D
+          `INSTR_USAGE(AMOMAXU_D, timm, '0, '0, '0, '0, '1, '1, '1, '1, '0) // AMOMAXU_D
         end
 
       end
@@ -589,11 +597,11 @@ module adn_riscv_instr_decoder
     if (EN_FLOAT) begin
 
       if ((encoded_instr_i & 'b00000000000000000111000001111111) == 'b00000000000000000010000000000111) begin
-        `INSTR_USAGE(FLW, iimm, '0, '0, '0, '1, '0, '1, '0, '0, '0) // FLW
+        `INSTR_USAGE(FLW, iimm, '0, '0, '0, '1, '0, '1, '0, '1, '0) // FLW
       end
 
       if ((encoded_instr_i & 'b00000000000000000111000001111111) == 'b00000000000000000010000000100111) begin
-        `INSTR_USAGE(FSW, simm, '0, '0, '1, '0, '0, '1, '0, '0, '0) // FSW
+        `INSTR_USAGE(FSW, simm, '0, '0, '1, '0, '0, '1, '0, '1, '0) // FSW
       end
 
       if ((encoded_instr_i & 'b00000110000000000000000001111111) == 'b00000000000000000000000001000011) begin
@@ -725,11 +733,11 @@ module adn_riscv_instr_decoder
     if (EN_DOUBLE) begin
 
       if ((encoded_instr_i & 'b00000000000000000111000001111111) == 'b00000000000000000011000000000111) begin
-        `INSTR_USAGE(FLD, iimm, '0, '0, '0, '1, '0, '1, '0, '0, '0) // FLD
+        `INSTR_USAGE(FLD, iimm, '0, '0, '0, '1, '0, '1, '0, '1, '0) // FLD
       end
 
       if ((encoded_instr_i & 'b00000000000000000111000001111111) == 'b00000000000000000011000000100111) begin
-        `INSTR_USAGE(FSD, simm, '0, '0, '1, '0, '0, '1, '0, '0, '0) // FSD
+        `INSTR_USAGE(FSD, simm, '0, '0, '1, '0, '0, '1, '0, '1, '0) // FSD
       end
 
       if ((encoded_instr_i & 'b00000110000000000000000001111111) == 'b00000010000000000000000001000011) begin
