@@ -43,6 +43,7 @@
 
 ## INCLUDE
 [`adn_riscv_pkg.sv`](document/include/adn_riscv_pkg.md)
+[`adn_riscv/typedef.svh`](document/include/adn_riscv/typedef.md)
 
 [`pmi/assign.svh`](https://github.com/ADN-VLSI/adn_common/blob/main/document/include/pmi/assign.md)
 [`pmi/typedef.svh`](https://github.com/ADN-VLSI/adn_common/blob/main/document/include/pmi/typedef.md)
