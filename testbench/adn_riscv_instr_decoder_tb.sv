@@ -13,6 +13,7 @@
 | TC_BTYPE_02 | 2026-08-25 | Shykul Islam Siam  | BLT instruction branch immediate extraction                 |
 | TC_STYPE_01 | 2026-08-25 | Shykul Islam Siam  | SW instruction decoding (S-type format)                     |
 | TC_STYPE_02 | 2026-08-25 | Shykul Islam Siam  | S-type immediate extraction for store operations             |
+| TC_STYPE_03 | 2026-08-25 | Shykul Islam Siam  | S-type store with non-zero imm[11:5] (sign-extension check)  |
 | TC_UTYPE_01 | 2026-08-25 | Shykul Islam Siam  | LUI instruction upper immediate extraction (U-type format)   |
 | TC_UTYPE_02 | 2026-08-25 | Shykul Islam Siam  | AUIPC instruction decoding (U-type format)                  |
 | TC_JTYPE_01 | 2026-08-25 | Shykul Islam Siam  | JAL instruction jump immediate extraction (J-type format)    |
@@ -22,12 +23,15 @@
 | TC_REG_01   | 2026-08-25 | Shykul Islam Siam  | Zero register (x0) handling in register extraction           |
 | TC_REG_02   | 2026-08-25 | Shykul Islam Siam  | Boundary register (x31) access validation                   |
 | TC_REG_03   | 2026-08-25 | Shykul Islam Siam  | Register requirements bitmap generation                     |
+| TC_FTYPE_01 | 2026-08-25 | Shykul Islam Siam  | FADD_S rounding-mode field extraction                        |
+| TC_ATYPE_01 | 2026-08-25 | Shykul Islam Siam  | AMOADD.D instruction decoding (RV64A)                        |
 
 | REVISION | DATE       | AUTHOR             | DESCRIPTION                                                  |
 |----------|------------|--------------------|----------------------------------------------------------------|
 | 0.1      | 2026-08-25 | Shykul Islam Siam  | Initial testbench version                                    |
 | 1.0      | 2026-08-25 | Shykul Islam Siam  | Stable release                                                |
 | 1.1      | 2026-08-25 | Shykul Islam Siam  | Added per-test-case pass/fail reporting with field-level diag |
+| 1.2      | 2026-08-25 | Shykul Islam Siam  | Added TC_STYPE_03, TC_FTYPE_01, TC_ATYPE_01 for extra coverage |
 
 Author : Shykul Islam Siam (shykulislam32@gmail.com)
 This file is part of ADN-VLSI/adn_riscv
@@ -37,17 +41,22 @@ See LICENSE file in the project root for full license information
 
 */
 
+// adn_riscv_pkg.sv contains a package...endpackage block, which is only
+// legal at file/compilation-unit scope, not nested inside a module -
+// so this include (and the matching import) must sit outside the module.
+`include "adn_riscv_pkg.sv"
+import adn_riscv_pkg::*;
+
 module adn_riscv_instr_decoder_tb;
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // IMPORTS
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
-  import adn_riscv_pkg::*;
-
-  // bring in the testbench essentials functions and macros
+  // these two stay inside the module: adn_common_tb_headers.sv declares an
+  // initial block (only legal inside a module), and typedef.svh's `ADN_RISCV_T
+  // macro is invoked below using module-local localparams.
   `include "vip/adn_common_tb_headers.sv"  // test_name, test_count, debug, note_case()
-  `include "adn_riscv_pkg.sv"
   `include "adn_riscv/typedef.svh"         // adn_riscv typedef macros (adn_riscv_decoded_instr_t)
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -221,6 +230,13 @@ module adn_riscv_instr_decoder_tb;
     check_decode("TC_STYPE_02", 32'h00d72223, '{op: SW, rs1: 5'd14, rs2: 5'd13, imm: 32'h00000004, default: '0},
                  1'b0, 1'b1, 1'b1, 1'b1);
   endtask
+  // TC_STYPE_03 : SW x1, 100(x2) - non-zero imm[11:5] pattern (0b0000011).
+  // Verifies simm[31:12] sign-extension replicates instr[31] (the true sign bit),
+  // not the imm[11:5]/funct7 field itself. Expected imm = 100 = 0x64.
+  task automatic tc_stype_03_nonzero_upper_imm();
+    check_decode("TC_STYPE_03", 32'h06112223, '{op: SW, rs1: 5'd2, rs2: 5'd1, imm: 32'h00000064, default: '0},
+                 1'b0, 1'b1, 1'b1, 1'b1);
+  endtask
   // TC_UTYPE_01 : LUI x15, 0x12345 - upper immediate extraction
   task automatic tc_utype_01_lui_imm_extract();
     check_decode("TC_UTYPE_01", 32'h123457B7, '{op: LUI, rd: 5'd15, imm: 32'h12345000, default: '0},
@@ -276,6 +292,22 @@ module adn_riscv_instr_decoder_tb;
       $display("[%0t] ADD op=%s reg_reqs=%b", $time, decoded_instr.op.name(), decoded_instr.reg_reqs);
     tc_end("TC_REG_03");
   endtask
+  // TC_FTYPE_01 : FADD_S f1, f0, f0, rm=RTZ(001).
+  // Verifies rimm is extracted from the true rm field at instr[14:12], not
+  // from instr[25]/instr[26]. FADD_S forces funct7=0000000, so this vector
+  // isolates the rm field cleanly. Expected imm = 3'b001 = 0x1.
+  task automatic tc_ftype_01_rounding_mode();
+    check_decode("TC_FTYPE_01", 32'h000010D3, '{op: FADD_S, imm: 32'h00000001, default: '0},
+                 1'b0, 1'b0, 1'b0, 1'b1);
+  endtask
+  // TC_ATYPE_01 : AMOADD.D x1, x3, (x2).
+  // Verifies RV64A (doubleword atomics) decode correctly when XLEN=64, matching
+  // the XLEN>32 gating convention used by the other RV64 extension blocks
+  // (RV64I/RV64M/RV64F/RV64D).
+  task automatic tc_atype_01_amoadd_d_decode();
+    check_decode("TC_ATYPE_01", 32'h003130AF, '{op: AMOADD_D, rd: 5'd1, rs1: 5'd2, rs2: 5'd3, default: '0},
+                 1'b1, 1'b1, 1'b1, 1'b0);
+  endtask
 
   // prints a final roll-up naming every test case that failed, so failures are never buried in a log
   task automatic print_summary();
@@ -315,6 +347,7 @@ module adn_riscv_instr_decoder_tb;
       "TC_BTYPE_02": tc_btype_02_blt_imm_extract();
       "TC_STYPE_01": tc_stype_01_sw_decode();
       "TC_STYPE_02": tc_stype_02_imm_extract();
+      "TC_STYPE_03": tc_stype_03_nonzero_upper_imm();
       "TC_UTYPE_01": tc_utype_01_lui_imm_extract();
       "TC_UTYPE_02": tc_utype_02_auipc_decode();
       "TC_JTYPE_01": tc_jtype_01_jal_imm_extract();
@@ -324,6 +357,8 @@ module adn_riscv_instr_decoder_tb;
       "TC_REG_01": tc_reg_01_zero_reg();
       "TC_REG_02": tc_reg_02_boundary_reg();
       "TC_REG_03": tc_reg_03_reg_reqs_bitmap();
+      "TC_FTYPE_01": tc_ftype_01_rounding_mode();
+      "TC_ATYPE_01": tc_atype_01_amoadd_d_decode();
 
       "TC_ALL": begin
         tc_rtype_01_add_decode();
@@ -337,6 +372,7 @@ module adn_riscv_instr_decoder_tb;
         tc_btype_02_blt_imm_extract();
         tc_stype_01_sw_decode();
         tc_stype_02_imm_extract();
+        tc_stype_03_nonzero_upper_imm();
         tc_utype_01_lui_imm_extract();
         tc_utype_02_auipc_decode();
         tc_jtype_01_jal_imm_extract();
@@ -346,6 +382,8 @@ module adn_riscv_instr_decoder_tb;
         tc_reg_01_zero_reg();
         tc_reg_02_boundary_reg();
         tc_reg_03_reg_reqs_bitmap();
+        tc_ftype_01_rounding_mode();
+        tc_atype_01_amoadd_d_decode();
       end
 
       default: $fatal(1, "\033[1;31mUNKNOWN TEST NAME: %s\033[0m", test_name);
