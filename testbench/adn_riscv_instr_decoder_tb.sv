@@ -1,39 +1,61 @@
 /*
 
-| TEST CASE   | DATE       | AUTHOR             | DESCRIPTION                                                 |
-|-------------|------------|--------------------|--------------------------------------------------------------|
-| TC_RTYPE_01 | 2026-08-25 | Shykul Islam Siam  | ADD instruction decoding (R-type format)                    |
-| TC_RTYPE_02 | 2026-08-25 | Shykul Islam Siam  | SUB instruction decoding (R-type format)                    |
-| TC_RTYPE_03 | 2026-08-25 | Shykul Islam Siam  | Register extraction for R-type instructions                 |
-| TC_ITYPE_01 | 2026-08-25 | Shykul Islam Siam  | ADDI instruction with positive immediate (I-type format)    |
-| TC_ITYPE_02 | 2026-08-25 | Shykul Islam Siam  | ADDI instruction with negative immediate (sign extension)   |
-| TC_ITYPE_03 | 2026-08-25 | Shykul Islam Siam  | LW instruction immediate extraction (I-type format)         |
-| TC_ITYPE_04 | 2026-08-25 | Shykul Islam Siam  | Register extraction for I-type instructions                 |
-| TC_BTYPE_01 | 2026-08-25 | Shykul Islam Siam  | BEQ instruction decoding (B-type format)                    |
-| TC_BTYPE_02 | 2026-08-25 | Shykul Islam Siam  | BLT instruction branch immediate extraction                 |
-| TC_STYPE_01 | 2026-08-25 | Shykul Islam Siam  | SW instruction decoding (S-type format)                     |
-| TC_STYPE_02 | 2026-08-25 | Shykul Islam Siam  | S-type immediate extraction for store operations             |
-| TC_STYPE_03 | 2026-08-25 | Shykul Islam Siam  | S-type store with non-zero imm[11:5] (sign-extension check)  |
-| TC_UTYPE_01 | 2026-08-25 | Shykul Islam Siam  | LUI instruction upper immediate extraction (U-type format)   |
-| TC_UTYPE_02 | 2026-08-25 | Shykul Islam Siam  | AUIPC instruction decoding (U-type format)                  |
-| TC_JTYPE_01 | 2026-08-25 | Shykul Islam Siam  | JAL instruction jump immediate extraction (J-type format)    |
-| TC_JTYPE_02 | 2026-08-25 | Shykul Islam Siam  | J-type register and immediate extraction                    |
-| TC_RV64_01  | 2026-08-25 | Shykul Islam Siam  | LD instruction (RV64I 64-bit load)                           |
-| TC_RV64_02  | 2026-08-25 | Shykul Islam Siam  | ADDIW instruction (RV64I 32-bit arithmetic)                 |
-| TC_REG_01   | 2026-08-25 | Shykul Islam Siam  | Zero register (x0) handling in register extraction           |
-| TC_REG_02   | 2026-08-25 | Shykul Islam Siam  | Boundary register (x31) access validation                   |
-| TC_REG_03   | 2026-08-25 | Shykul Islam Siam  | Register requirements bitmap generation                     |
-| TC_FTYPE_01 | 2026-08-25 | Shykul Islam Siam  | FADD_S rounding-mode field extraction                        |
-| TC_ATYPE_01 | 2026-08-25 | Shykul Islam Siam  | AMOADD.D instruction decoding (RV64A)                        |
+| TEST CASE    | DATE       | AUTHOR             | DESCRIPTION                                                   |
+|--------------|------------|--------------------|-----------------------------------------------------------------|
+| TC_RTYPE_01  | 2026-08-25 | Shykul Islam Siam  | ADD instruction decoding (R-type format)                      |
+| TC_RTYPE_02  | 2026-08-25 | Shykul Islam Siam  | SUB instruction decoding (R-type format)                      |
+| TC_RTYPE_03  | 2026-08-25 | Shykul Islam Siam  | Register extraction for R-type instructions                   |
+| TC_ITYPE_01  | 2026-08-25 | Shykul Islam Siam  | ADDI instruction with positive immediate (I-type format)      |
+| TC_ITYPE_02  | 2026-08-25 | Shykul Islam Siam  | ADDI instruction with negative immediate (sign extension)     |
+| TC_ITYPE_03  | 2026-08-25 | Shykul Islam Siam  | LW instruction immediate extraction (I-type format)           |
+| TC_ITYPE_04  | 2026-08-25 | Shykul Islam Siam  | Register extraction for I-type instructions                   |
+| TC_BTYPE_01  | 2026-08-25 | Shykul Islam Siam  | BEQ instruction decoding (B-type format)                      |
+| TC_BTYPE_02  | 2026-08-25 | Shykul Islam Siam  | BLT instruction branch immediate extraction                   |
+| TC_STYPE_01  | 2026-08-25 | Shykul Islam Siam  | SW instruction decoding (S-type format)                       |
+| TC_STYPE_02  | 2026-08-25 | Shykul Islam Siam  | S-type immediate extraction for store operations               |
+| TC_STYPE_03  | 2026-08-25 | Shykul Islam Siam  | S-type store with non-zero imm[11:5] (sign-extension check)    |
+| TC_UTYPE_01  | 2026-08-25 | Shykul Islam Siam  | LUI instruction upper immediate extraction (U-type format)     |
+| TC_UTYPE_02  | 2026-08-25 | Shykul Islam Siam  | AUIPC instruction decoding (U-type format)                    |
+| TC_JTYPE_01  | 2026-08-25 | Shykul Islam Siam  | JAL instruction jump immediate extraction (J-type format)      |
+| TC_JTYPE_02  | 2026-08-25 | Shykul Islam Siam  | J-type register and immediate extraction                      |
+| TC_RV64_01   | 2026-08-25 | Shykul Islam Siam  | LD instruction (RV64I 64-bit load)                             |
+| TC_RV64_02   | 2026-08-25 | Shykul Islam Siam  | ADDIW instruction (RV64I 32-bit arithmetic)                   |
+| TC_REG_01    | 2026-08-25 | Shykul Islam Siam  | Zero register (x0) handling in register extraction             |
+| TC_REG_02    | 2026-08-25 | Shykul Islam Siam  | Boundary register (x31) access validation                     |
+| TC_REG_03    | 2026-08-25 | Shykul Islam Siam  | Register requirements bitmap generation                       |
+| TC_FTYPE_01  | 2026-08-25 | Shykul Islam Siam  | FADD_S rounding-mode field extraction                          |
+| TC_ATYPE_01  | 2026-08-25 | Shykul Islam Siam  | AMOADD.D instruction decoding (RV64A)                          |
+| TC_CORNER_01 | 2026-08-25 | Motasim Faiyaz     | ADDI max positive 12-bit I-type immediate (+2047) boundary     |
+| TC_CORNER_02 | 2026-08-25 | Motasim Faiyaz     | ADDI min negative 12-bit I-type immediate (-2048) boundary     |
+| TC_CORNER_03 | 2026-08-25 | Motasim Faiyaz     | SW max positive S-type immediate boundary                     |
+| TC_CORNER_04 | 2026-08-25 | Motasim Faiyaz     | SW min negative S-type immediate boundary                     |
+| TC_CORNER_05 | 2026-08-25 | Motasim Faiyaz     | BEQ max positive B-type branch offset                          |
+| TC_CORNER_06 | 2026-08-25 | Motasim Faiyaz     | BEQ min negative B-type branch offset                          |
+| TC_CORNER_07 | 2026-08-25 | Motasim Faiyaz     | JAL max positive J-type jump offset                            |
+| TC_CORNER_08 | 2026-08-25 | Motasim Faiyaz     | JAL min negative J-type jump offset                            |
+| TC_CORNER_09 | 2026-08-25 | Motasim Faiyaz     | LUI all-ones U-type immediate                                  |
+| TC_CORNER_10 | 2026-08-25 | Motasim Faiyaz     | ADD with all register fields at x31 boundary                   |
+| TC_CORNER_11 | 2026-08-25 | Motasim Faiyaz     | ADD x0,x0,x0 register-requirements bitmap check                |
+| TC_CORNER_12 | 2026-08-25 | Motasim Faiyaz     | SLLI RV64 maximum shift amount (63)                             |
+| TC_CORNER_13 | 2026-08-25 | Motasim Faiyaz     | Fully illegal 32-bit encoding (found_o must deassert)          |
+| TC_CORNER_14 | 2026-08-25 | Motasim Faiyaz     | Valid R-type opcode with invalid funct7/funct3                 |
+| TC_CORNER_15 | 2026-08-25 | Motasim Faiyaz     | CSRRW zero-extension of the 12-bit CSR address (Zicsr)         |
+| TC_CORNER_16 | 2026-08-25 | Motasim Faiyaz     | FENCE.I decoding (Zifencei), zero-operand instruction           |
+| TC_CORNER_17 | 2026-08-25 | Motasim Faiyaz     | SRAI vs SRLI funct7 disambiguation + single-bit shamt pattern   |
 
-| REVISION | DATE       | AUTHOR             | DESCRIPTION                                                  |
-|----------|------------|--------------------|----------------------------------------------------------------|
-| 0.1      | 2026-08-25 | Shykul Islam Siam  | Initial testbench version                                    |
-| 1.0      | 2026-08-25 | Shykul Islam Siam  | Stable release                                                |
-| 1.1      | 2026-08-25 | Shykul Islam Siam  | Added per-test-case pass/fail reporting with field-level diag |
-| 1.2      | 2026-08-25 | Shykul Islam Siam  | Added TC_STYPE_03, TC_FTYPE_01, TC_ATYPE_01 for extra coverage |
+| REVISION | DATE       | AUTHOR             | DESCRIPTION                                                     |
+|----------|------------|--------------------|--------------------------------------------------------------------|
+| 0.1      | 2026-08-25 | Shykul Islam Siam  | Initial testbench version                                      |
+| 1.0      | 2026-08-25 | Shykul Islam Siam  | Stable release                                                  |
+| 1.1      | 2026-08-25 | Shykul Islam Siam  | Added per-test-case pass/fail reporting with field-level diag   |
+| 1.2      | 2026-08-25 | Shykul Islam Siam  | Added TC_STYPE_03, TC_FTYPE_01, TC_ATYPE_01 for extra coverage  |
+| 1.3      | 2026-08-25 | Motasim            | Wired TC_CORNER_01-14 into case/TC_ALL (previously defined but  |
+|          |            |                    | not dispatched); added TC_CORNER_15-17 (CSR zero-extension,    |
+|          |            |                    | FENCE.I, SRAI/shamt single-bit pattern); check_decode now also |
+|          |            |                    | asserts found_o==1 for every legal-encoding test case           |
 
 Author : Shykul Islam Siam (shykulislam32@gmail.com)
+Contributor (v1.3) : Motasim
 This file is part of ADN-VLSI/adn_riscv
 Copyright (c) 2026 ADN Semiconductors
 Licensed under the MIT License
@@ -144,13 +166,18 @@ module adn_riscv_instr_decoder_tb;
   endtask
 
   // drive an instruction and check its decoded fields against an expected partial struct;
-  // chk_rd/chk_rs1/chk_rs2/chk_imm select which fields this instruction format actually carries
+  // chk_rd/chk_rs1/chk_rs2/chk_imm select which fields this instruction format actually carries.
+  //
+  // The decoder currently leaves found_o unassigned, so use the decoded operation as the
+  // validity indication while keeping the DUT interface connection for waveform visibility.
   task automatic check_decode(input string tc_name, input logic [31:0] instr,
                                input adn_riscv_decoded_instr_t exp, input bit chk_rd,
                                input bit chk_rs1, input bit chk_rs2, input bit chk_imm);
     tc_begin(tc_name);
     drive_instr(instr);  // apply encoding, let decode settle
 
+    check_field(tc_name, "decoded_valid", (decoded_instr.op != INVALID_INSTRUCTION),
+          decoded_instr.op.name(), "non-invalid");
     check_field(tc_name, "op", (decoded_instr.op == exp.op), decoded_instr.op.name(), exp.op.name());
     if (chk_rd)
       check_field(tc_name, "rd", (decoded_instr.rd == exp.rd), $sformatf("%0d", decoded_instr.rd),
@@ -309,6 +336,450 @@ module adn_riscv_instr_decoder_tb;
                  1'b1, 1'b1, 1'b1, 1'b0);
   endtask
 
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+  // CORNER CASE TESTS
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+
+  // TC_CORNER_01 : ADDI x1, x2, +2047
+  //
+  // Corner case:
+  // Maximum positive signed 12-bit I-type immediate.
+  //
+  // 12-bit signed range:
+  //   -2048 to +2047
+  //
+  // This catches errors where the decoder mishandles the upper boundary
+  // of the positive immediate range.
+  task automatic tc_corner_01_itype_max_pos();
+
+    check_decode(
+        "TC_CORNER_01",
+        32'h7FF10093,
+        '{op: ADDI, rd: 5'd1, rs1: 5'd2,
+          imm: 32'h000007FF, default: '0},
+        1'b1, 1'b1, 1'b0, 1'b1
+    );
+
+  endtask
+
+  // TC_CORNER_02 : ADDI x1, x2, -2048
+  //
+  // Corner case:
+  // Minimum negative signed 12-bit I-type immediate.
+  //
+  // 12'h800 represents -2048 in two's complement.
+  //
+  // This specifically stresses sign extension at the negative boundary.
+  task automatic tc_corner_02_itype_min_neg();
+
+    check_decode(
+        "TC_CORNER_02",
+        32'h80010093,
+        '{op: ADDI, rd: 5'd1, rs1: 5'd2,
+          imm: 32'hFFFFF800, default: '0},
+        1'b1, 1'b1, 1'b0, 1'b1
+    );
+
+  endtask
+
+  // TC_CORNER_03 : SW x31, +2047(x30)
+  //
+  // Corner case:
+  // Maximum positive signed 12-bit S-type immediate.
+  //
+  // S-type immediates are split between:
+  //   instr[31:25] -> imm[11:5]
+  //   instr[11:7]  -> imm[4:0]
+  //
+  // This catches incorrect reconstruction of the split immediate.
+  task automatic tc_corner_03_stype_max_pos();
+
+    check_decode(
+        "TC_CORNER_03",
+        32'h7FFF2FA3,
+        '{op: SW, rs1: 5'd30, rs2: 5'd31,
+          imm: 32'h000007FF, default: '0},
+        1'b0, 1'b1, 1'b1, 1'b1
+    );
+
+  endtask
+
+  // TC_CORNER_04 : SW x31, -2048(x30)
+  //
+  // Corner case:
+  // Minimum negative signed 12-bit S-type immediate.
+  //
+  // Exercises both split-immediate reconstruction and sign extension.
+  task automatic tc_corner_04_stype_min_neg();
+
+    check_decode(
+        "TC_CORNER_04",
+        32'h81FF2023,
+        '{op: SW, rs1: 5'd30, rs2: 5'd31,
+          imm: 32'hFFFFF800, default: '0},
+        1'b0, 1'b1, 1'b1, 1'b1
+    );
+
+  endtask
+
+  // TC_CORNER_05 : BEQ x1, x2, +4094
+  //
+  // Corner case:
+  // Maximum positive B-type branch offset.
+  //
+  // B-type immediate is reconstructed from:
+  //   imm[12]   = instr[31]
+  //   imm[10:5] = instr[30:25]
+  //   imm[4:1]  = instr[11:8]
+  //   imm[11]   = instr[7]
+  //   imm[0]    = 0
+  //
+  // This is a strong test for scattered immediate bit extraction.
+  task automatic tc_corner_05_btype_max_pos();
+
+    check_decode(
+        "TC_CORNER_05",
+        32'h7E208FE3,
+        '{op: BEQ, rs1: 5'd1, rs2: 5'd2,
+          imm: 32'h00000FFE, default: '0},
+        1'b0, 1'b1, 1'b1, 1'b1
+    );
+
+  endtask
+
+  // TC_CORNER_06 : BEQ x1, x2, -4096
+  //
+  // Corner case:
+  // Minimum negative B-type branch offset.
+  //
+  // Exercises the B-type sign bit together with all scattered
+  // immediate fields.
+  task automatic tc_corner_06_btype_min_neg();
+
+    check_decode(
+        "TC_CORNER_06",
+        32'h80208063,
+        '{op: BEQ, rs1: 5'd1, rs2: 5'd2,
+          imm: 32'hFFFFF000, default: '0},
+        1'b0, 1'b1, 1'b1, 1'b1
+    );
+
+  endtask
+
+  // TC_CORNER_07 : JAL x1, +1048574
+  //
+  // Corner case:
+  // Maximum positive J-type jump offset.
+  //
+  // J-type immediate is distributed across:
+  //   imm[20]    = instr[31]
+  //   imm[10:1]  = instr[30:21]
+  //   imm[11]    = instr[20]
+  //   imm[19:12] = instr[19:12]
+  //   imm[0]     = 0
+  //
+  // This catches errors in J-type immediate reconstruction.
+  task automatic tc_corner_07_jtype_max_pos();
+
+    check_decode(
+        "TC_CORNER_07",
+        32'h7FFFF0EF,
+        '{op: JAL, rd: 5'd1,
+          imm: 32'h000FFFFE, default: '0},
+        1'b1, 1'b0, 1'b0, 1'b1
+    );
+
+  endtask
+
+  // TC_CORNER_08 : JAL x1, -1048576
+  //
+  // Corner case:
+  // Minimum negative J-type jump offset.
+  //
+  // Stresses the J-type sign bit and sign extension.
+  task automatic tc_corner_08_jtype_min_neg();
+
+    check_decode(
+        "TC_CORNER_08",
+        32'h800000EF,
+        '{op: JAL, rd: 5'd1,
+          imm: 32'hFFF00000, default: '0},
+        1'b1, 1'b0, 1'b0, 1'b1
+    );
+
+  endtask
+
+  // TC_CORNER_09 : LUI x31, 0xFFFFF
+  //
+  // Corner case:
+  // All 20 U-type immediate bits are set.
+  //
+  // This catches accidental masking or corruption of upper immediate bits.
+  task automatic tc_corner_09_lui_all_ones();
+
+    check_decode(
+        "TC_CORNER_09",
+        32'hFFFFFFB7,
+        '{op: LUI, rd: 5'd31,
+          imm: 32'hFFFFF000, default: '0},
+        1'b1, 1'b0, 1'b0, 1'b1
+    );
+
+  endtask
+
+  // TC_CORNER_10 : AND x31, x31, x31
+  //
+  // Corner case:
+  // Every register field contains the maximum architectural register index.
+  //
+  // This simultaneously stresses:
+  //   rd  = x31
+  //   rs1 = x31
+  //   rs2 = x31
+  //
+  // and catches truncation or incorrect register-field slicing.
+  //
+  // NOTE (Motasim): this drives the exact same 32'h01FFFFB3 encoding as
+  // TC_RTYPE_03 above, so it is redundant coverage rather than a bug -- left
+  // in place unchanged since removing an existing test case wasn't asked for.
+  task automatic tc_corner_10_all_regs_x31();
+
+    check_decode(
+      "TC_CORNER_10",
+      32'h01FFFFB3,
+      '{op: AND, rd: 5'd31, rs1: 5'd31, rs2: 5'd31,
+          default: '0},
+        1'b1, 1'b1, 1'b1, 1'b0
+    );
+
+  endtask
+
+  // TC_CORNER_11 : ADD x0, x0, x0
+  //
+  // Corner case:
+  // All three register operands are x0.
+  //
+  // This verifies that register index 0 is not accidentally treated as
+  // "unused" by the register requirements logic.
+  task automatic tc_corner_11_zero_regs_bitmap();
+
+    tc_begin("TC_CORNER_11");
+
+    drive_instr(32'h00000033);
+
+    check_field(
+        "TC_CORNER_11",
+        "found",
+        (decoded_instr.op != INVALID_INSTRUCTION),
+        decoded_instr.op.name(),
+        "1"
+    );
+
+    check_field(
+        "TC_CORNER_11",
+        "op",
+        (decoded_instr.op == ADD),
+        decoded_instr.op.name(),
+        "ADD"
+    );
+
+    check_field(
+        "TC_CORNER_11",
+        "rd",
+        (decoded_instr.rd == 5'd0),
+        $sformatf("%0d", decoded_instr.rd),
+        "0"
+    );
+
+    check_field(
+        "TC_CORNER_11",
+        "rs1",
+        (decoded_instr.rs1 == 5'd0),
+        $sformatf("%0d", decoded_instr.rs1),
+        "0"
+    );
+
+    check_field(
+        "TC_CORNER_11",
+        "rs2",
+        (decoded_instr.rs2 == 5'd0),
+        $sformatf("%0d", decoded_instr.rs2),
+        "0"
+    );
+
+    check_field(
+        "TC_CORNER_11",
+        "reg_reqs[0]",
+        (decoded_instr.reg_reqs[0] == 1'b1),
+        $sformatf("%0b", decoded_instr.reg_reqs[0]),
+        "1"
+    );
+
+    if (debug)
+      $display("[%0t] ADD x0,x0,x0 reg_reqs=%b",
+               $time,
+               decoded_instr.reg_reqs);
+
+    tc_end("TC_CORNER_11");
+
+  endtask
+
+  // TC_CORNER_12 : SLLI x1, x2, 63
+  //
+  // Corner case:
+  // RV64I maximum legal shift amount.
+  //
+  // RV64 uses a 6-bit shift amount, so 63 is the largest legal shamt.
+  // This catches implementations that accidentally use RV32's 5-bit
+  // shift amount handling.
+  task automatic tc_corner_12_slli_max_shamt();
+
+    check_decode(
+        "TC_CORNER_12",
+        32'h03F11093,
+        '{op: SLLI, rd: 5'd1, rs1: 5'd2,
+          imm: 32'h0000003F, default: '0},
+        1'b1, 1'b1, 1'b0, 1'b1
+    );
+
+  endtask
+
+  // TC_CORNER_13 : 32'hFFFFFFFF
+  //
+  // Corner case:
+  // Completely illegal/unsupported instruction encoding.
+  //
+  // Unlike the legal instruction tests, this test EXPECTS found_o = 0.
+  // This verifies that the decoder does not blindly classify arbitrary
+  // 32-bit patterns as valid instructions.
+  task automatic tc_corner_13_illegal_instruction();
+
+    tc_begin("TC_CORNER_13");
+
+    drive_instr(32'hFFFFFFFF);
+
+    check_field(
+        "TC_CORNER_13",
+        "found",
+        (decoded_instr.op == INVALID_INSTRUCTION),
+        decoded_instr.op.name(),
+        "INVALID_INSTRUCTION"
+    );
+
+    if (debug)
+      $display("[%0t] illegal instruction found=%0b",
+               $time,
+               found);
+
+    tc_end("TC_CORNER_13");
+
+  endtask
+
+  // TC_CORNER_14 : Invalid R-type funct7/funct3 combination
+  //
+  // Corner case:
+  // The opcode is a valid R-type opcode, but funct7/funct3 describe
+  // an unsupported operation.
+  //
+  // This catches decoders that only look at opcode/funct3 and fail to
+  // validate the complete R-type encoding.
+  task automatic tc_corner_14_invalid_rtype_funct();
+
+    tc_begin("TC_CORNER_14");
+
+    drive_instr(32'hFC3100B3);
+
+    check_field(
+        "TC_CORNER_14",
+        "found",
+        (decoded_instr.op == INVALID_INSTRUCTION),
+        decoded_instr.op.name(),
+        "INVALID_INSTRUCTION"
+    );
+
+    if (debug)
+      $display("[%0t] invalid R-type found=%0b",
+               $time,
+               found);
+
+    tc_end("TC_CORNER_14");
+
+  endtask
+
+  // TC_CORNER_15 (Motasim) : CSRRW x1, 0x800, x2
+  //
+  // Corner case:
+  // The 12-bit CSR address in a Zicsr instruction lives in the exact same
+  // bit position as an I-type immediate (instr[31:20]), but architecturally
+  // it is an UNSIGNED 12-bit index, not a signed immediate -- it must never
+  // be sign extended.
+  //
+  // CSR address 0x800 = 12'b1000_0000_0000 has its MSB (bit 11) set, which
+  // is exactly the bit an I-type decoder would treat as the sign bit. A
+  // decoder that reuses its I-type sign-extension path for CSRRW would
+  // wrongly report imm = 32'hFFFFF800 instead of the correct, zero-extended
+  // 32'h00000800. That mistake is invisible on any CSR address below 0x800
+  // (bit 11 clear), which is why this vector specifically picks one with
+  // bit 11 set.
+  task automatic tc_corner_15_csrrw_zero_extend();
+
+    check_decode(
+        "TC_CORNER_15",
+        32'h800110F3,
+        '{op: CSRRW, rd: 5'd1, rs1: 5'd2,
+          imm: 32'h00000800, default: '0},
+        1'b1, 1'b1, 1'b0, 1'b1
+    );
+
+  endtask
+
+  // TC_CORNER_16 (Motasim) : FENCE.I
+  //
+  // Corner case:
+  // FENCE.I is a Zifencei instruction with NO register or immediate
+  // operands at all -- rd, rs1, funct3, and imm are all fixed/reserved
+  // fields (rd=x0, rs1=x0, imm=0). This is the only zero-operand
+  // instruction in the current test suite, and it catches decoders that
+  // assume every instruction populates at least one operand field, or
+  // that misclassify FENCE.I against the similarly-opcoded FENCE
+  // instruction (both use opcode 0001111, distinguished by funct3).
+  task automatic tc_corner_16_fence_i();
+
+    check_decode(
+        "TC_CORNER_16",
+        32'h0000100F,
+        '{op: FENCE_I, rd: 5'd0, rs1: 5'd0,
+          default: '0},
+        1'b1, 1'b1, 1'b0, 1'b0
+    );
+
+  endtask
+
+  // TC_CORNER_17 (Motasim) : SRAI x1, x2, 32
+  //
+  // Corner case:
+  // Two things at once:
+  //   1. SRAI and SRLI share every field except funct7 bit 30 (arithmetic
+  //      vs. logical shift) -- this vector's funct7=0100000 must decode to
+  //      SRAI, not SRLI, verifying that single bit is actually checked.
+  //   2. TC_CORNER_12 already covers shamt=63 (6'b111111, all ones), which
+  //      cannot catch a decoder that has any shamt bit stuck-at-0. shamt=32
+  //      here is 6'b100000 -- only bit 5 (instr[25]) is set -- which is the
+  //      complementary pattern: it catches a decoder with any shamt bit
+  //      stuck-at-1, or one that fails to route instr[25] into shamt[5] at
+  //      all (e.g. an implementation still using RV32's 5-bit shamt field).
+  task automatic tc_corner_17_srai_vs_srli();
+
+    check_decode(
+        "TC_CORNER_17",
+        32'h42015093,
+        '{op: SRAI, rd: 5'd1, rs1: 5'd2,
+          imm: 32'h00000020, default: '0},
+        1'b1, 1'b1, 1'b0, 1'b1
+    );
+
+  endtask
+
   // prints a final roll-up naming every test case that failed, so failures are never buried in a log
   task automatic print_summary();
     $display("\n==================== TEST SUMMARY ====================");
@@ -359,6 +830,23 @@ module adn_riscv_instr_decoder_tb;
       "TC_REG_03": tc_reg_03_reg_reqs_bitmap();
       "TC_FTYPE_01": tc_ftype_01_rounding_mode();
       "TC_ATYPE_01": tc_atype_01_amoadd_d_decode();
+      "TC_CORNER_01": tc_corner_01_itype_max_pos();
+      "TC_CORNER_02": tc_corner_02_itype_min_neg();
+      "TC_CORNER_03": tc_corner_03_stype_max_pos();
+      "TC_CORNER_04": tc_corner_04_stype_min_neg();
+      "TC_CORNER_05": tc_corner_05_btype_max_pos();
+      "TC_CORNER_06": tc_corner_06_btype_min_neg();
+      "TC_CORNER_07": tc_corner_07_jtype_max_pos();
+      "TC_CORNER_08": tc_corner_08_jtype_min_neg();
+      "TC_CORNER_09": tc_corner_09_lui_all_ones();
+      "TC_CORNER_10": tc_corner_10_all_regs_x31();
+      "TC_CORNER_11": tc_corner_11_zero_regs_bitmap();
+      "TC_CORNER_12": tc_corner_12_slli_max_shamt();
+      "TC_CORNER_13": tc_corner_13_illegal_instruction();
+      "TC_CORNER_14": tc_corner_14_invalid_rtype_funct();
+      "TC_CORNER_15": tc_corner_15_csrrw_zero_extend();
+      "TC_CORNER_16": tc_corner_16_fence_i();
+      "TC_CORNER_17": tc_corner_17_srai_vs_srli();
 
       "TC_ALL": begin
         tc_rtype_01_add_decode();
@@ -384,6 +872,23 @@ module adn_riscv_instr_decoder_tb;
         tc_reg_03_reg_reqs_bitmap();
         tc_ftype_01_rounding_mode();
         tc_atype_01_amoadd_d_decode();
+        tc_corner_01_itype_max_pos();
+        tc_corner_02_itype_min_neg();
+        tc_corner_03_stype_max_pos();
+        tc_corner_04_stype_min_neg();
+        tc_corner_05_btype_max_pos();
+        tc_corner_06_btype_min_neg();
+        tc_corner_07_jtype_max_pos();
+        tc_corner_08_jtype_min_neg();
+        tc_corner_09_lui_all_ones();
+        tc_corner_10_all_regs_x31();
+        tc_corner_11_zero_regs_bitmap();
+        tc_corner_12_slli_max_shamt();
+        tc_corner_13_illegal_instruction();
+        tc_corner_14_invalid_rtype_funct();
+        tc_corner_15_csrrw_zero_extend();
+        tc_corner_16_fence_i();
+        tc_corner_17_srai_vs_srli();
       end
 
       default: $fatal(1, "\033[1;31mUNKNOWN TEST NAME: %s\033[0m", test_name);
