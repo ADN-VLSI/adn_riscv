@@ -89,8 +89,8 @@ module adn_riscv_instr_decoder
   always_comb jimm[20]    = encoded_instr_i[31];
   always_comb jimm[31:21] = {11{encoded_instr_i[31]}};
 
-  always_comb rimm[2:0]   = encoded_instr_i[25:25];
-  always_comb rimm[31:3]  = encoded_instr_i[26:26];
+  always_comb rimm[2:0]   = encoded_instr_i[14:12];
+  always_comb rimm[31:3]  = '0;
 
   always_comb simm[4:0]   = encoded_instr_i[11:7];
   always_comb simm[11:5]  = encoded_instr_i[31:25];
@@ -542,7 +542,7 @@ module adn_riscv_instr_decoder
       // RV64A
       ////////////////////////////////////////////////////////////////////////////////////////////////
 
-      if (XLEN > 64) begin
+      if (XLEN > 32) begin
 
         if ((encoded_instr_i & 'b11111001111100000111000001111111) == 'b00010000000000000011000000101111) begin
           `INSTR_USAGE(LR_D, timm, '0, '0, '0, '0, '0, '1, '1, '1, '0) // LR_D
