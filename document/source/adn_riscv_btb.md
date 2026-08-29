@@ -33,9 +33,11 @@
 
 ## Description
 
-@foez---bhai, write the purpose of this module in markdown format here. This is already in multi-line comment, so don't add any additional comment syntax.
+### Purpose
+The `adn_riscv_btb` module implements a Branch Target Buffer (BTB) designed to predict the outcomes of branch and jump instructions in a RISC-V processor. It caches target addresses for previously executed branches, allowing the pipeline to fetch the correct instruction stream early and minimize performance penalties associated with control flow changes.
 
-@foez---bhai, describe the use case of this module in markdown format here. This is already in multi-line comment, so don't add any additional comment syntax.
+### Use Case
+This module is utilized in the instruction fetch stage of a RISC-V pipeline. When the processor encounters a branch or jump instruction, the BTB is queried using the current program counter (PC). If a match is found, the module provides the predicted target address, allowing the fetch unit to redirect the instruction stream immediately. If the prediction is incorrect or a new branch is encountered, the module updates its internal buffer using a state-based replacement policy to improve future prediction accuracy.
 
 | REVISION | DATE       | AUTHOR          | DESCRIPTION                                            |
 |----------|------------|-----------------|--------------------------------------------------------|
