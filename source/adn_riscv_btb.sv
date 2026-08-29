@@ -17,10 +17,9 @@ See LICENSE file in the project root for full license information
 
 */
 
-// @foez-bhai, add comments to the parameters, ports
 module adn_riscv_btb #(
-    parameter int NUM_BTB = 32,
-    parameter int XLEN    = 64
+    parameter int NUM_BTB = 32, // Number of entries in the Branch Target Buffer
+    parameter int XLEN    = 64  // Data width of the processor
 ) (
     input logic clk_i,   // Clock input
     input logic arst_ni, // Asynchronous reset input
@@ -35,8 +34,6 @@ module adn_riscv_btb #(
     output logic [XLEN-1:0] next_pc_o       // Next program counter (in case of jump) output
 );
 
-  // @foez-bhai, add comments to the functional blocks, signals, and submodules
-
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // TYPEDEFS
   //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -49,13 +46,16 @@ module adn_riscv_btb #(
 
   // Buffer to store current addresses
   reduced_addr_t current_addr_buffer[NUM_BTB];
-  // Buffer to store next addresses  reduced_addr_t next_addr_buffer[NUM_BTB];
-  // Valid bits for buffer entries  logic [NUM_BTB-1:0] valid_buffer;
-  // Strength bis for buffer entries
+  // Buffer to store next addresses
+  reduced_addr_t next_addr_buffer[NUM_BTB];
+  // Valid bits for buffer entries
+  logic [NUM_BTB-1:0] valid_buffer;
+  // Strength bits for buffer entries
   logic [NUM_BTB-1:0] strength_buffer;
-  // Valid + Strngth bits for buffer entries
+  // Valid + Strength bits for buffer entries
   logic [1:0] valid_strength[NUM_BTB];
-  // Counter for buffer entries  logic [$clog2(NUM_BTB)-1:0] buffer_counter;
+  // Counter for buffer entries
+  logic [$clog2(NUM_BTB)-1:0] buffer_counter;
 
   // Write enable signals for buffer entries
   logic [NUM_BTB-1:0] write_enable;
@@ -64,19 +64,19 @@ module adn_riscv_btb #(
 
   // Match signals for program counter and current address
   logic [NUM_BTB-1:0] pc_addr_match;
-  // Index of maching row in buffer
+  // Index of matching row in buffer
   logic [$clog2(NUM_BTB)-1:0] match_index;
-  // Index of empty rowin buffer
+  // Index of empty row in buffer
   logic [$clog2(NUM_BTB)-1:0] empty_index;
-  // Index of row to wrte in buffer
+  // Index of row to write in buffer
   logic [$clog2(NUM_BTB)-1:0] write_index;
   // Input and Output state for State Decider - {valid, strength}
   logic [1:0] input_state, output_state;
 
-  //State Definitions
-  parameter logic [1:0] INVALID = 2'b01,  // Valid and weak strength
-  VALID_WEAK = 2'b10,  // Valid and strong strength
-  VALID_STRONG = 2'b11;  // Invalid entry
+  // State Definitions
+  parameter logic [1:0] INVALID = 2'b00,
+                        VALID_WEAK = 2'b10,
+                        VALID_STRONG = 2'b11;
 
   // Flag to indicate if an empty row is found
   logic empty_found;
@@ -91,7 +91,7 @@ module adn_riscv_btb #(
 
   // Check for matches between program counter and current addresses in buffer
   for (genvar i = 0; i < NUM_BTB; i++) begin : g_pc_addr_match
-    always_comb pc_addr_match[i] = valid_buffer[i] & (pc_i == current_addr_buffer[i]);
+    always_comb pc_addr_match[i] = valid_buffer[i] & (pc_i[XLEN-1:2] == current_addr_buffer[i]);
   end
 
   // Output match_found signal if a match is found or table is updated
@@ -189,7 +189,7 @@ module adn_riscv_btb #(
     always_ff @(posedge clk_i or negedge arst_ni) begin
       if (~arst_ni) begin
         strength_buffer[i] <= '1;
-      end else if (valid_buffer[i]) begin
+      end else if (write_enable[i]) begin
         strength_buffer[i] <= output_state[0];
       end
     end
