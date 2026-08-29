@@ -1,8 +1,14 @@
 /*
 
-@foez-bhai, write the purpose of this module in markdown format here. This is already in multi-line comment, so don't add any additional comment syntax.
+# Purpose
+The `adn_riscv_instr_launcher` module serves as a high-performance instruction dispatch and ordering unit for a RISC-V processor. It manages a multi-stage pipeline structure that buffers incoming decoded instructions, performs dependency checking via order checkers, and uses a fixed-priority arbiter to ensure instructions are launched to the execution units in the correct order while maintaining data integrity and handling resource locks.
 
-@foez-bhai, describe the use case of this module in markdown format here. This is already in multi-line comment, so don't add any additional comment syntax.
+# Use Case
+The `adn_riscv_instr_launcher` is designed to be placed between the instruction decoder and the execution units in a RISC-V pipeline. Its primary use cases include:
+- **Instruction Buffering**: Providing a multi-stage buffer to decouple the decode stage from execution, allowing for smoother instruction flow.
+- **Dependency Management**: Ensuring that instructions with data dependencies (e.g., register hazards) are held back until their required operands are available.
+- **In-Order Dispatch**: Guaranteeing that instructions are issued to execution units in the correct program order, even if they arrive at the launcher out of sequence or are delayed by resource locks.
+- **Resource Arbitration**: Managing access to shared execution resources by arbitrating between multiple pending instructions across different pipeline stages.
 
 | REVISION | DATE       | AUTHOR          | DESCRIPTION                                            |
 |----------|------------|-----------------|--------------------------------------------------------|
@@ -17,11 +23,10 @@ See LICENSE file in the project root for full license information
 
 */
 
-// @foez-bhai, add comments to the parameters, ports
 module adn_riscv_instr_launcher #(
-    parameter type decoded_instr_t = logic,
-    parameter int  NR              = 32,
-    parameter int  NOS             = 8
+    parameter type decoded_instr_t = logic, // Data type for the decoded instruction
+    parameter int  NR              = 32,    // Number of registers to track for dependencies
+    parameter int  NOS             = 8      // Number of pipeline stages
 ) (
     input logic arst_ni,  // Asynchronous reset, active low
     input logic clk_i,    // Clock input
@@ -38,28 +43,26 @@ module adn_riscv_instr_launcher #(
     input  logic           instr_out_ready_i   // Ready signal for outgoing instruction
 );
 
-  // @foez-bhai, add comments to the functional blocks, signals, and submodules
-
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // SIGNALS
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
-  logic [NOS:0] clears;  // Clear signals for pipelines
+  logic [NOS:0] clears;  // Clear signals for individual pipeline stages
 
-  decoded_instr_t [NOS:0] pl_ins;  // Pipeline inputs
-  logic [NOS:0] pl_ins_valid;  // Valid signals for pipeline inputs
-  logic [NOS:0] pl_ins_ready;  // Ready signals for pipeline inputs
-  decoded_instr_t [NOS:0] pl_outs;  // Pipeline outputs
-  logic [NOS:0] pl_outs_valid;  // Valid signals for pipeline outputs
-  logic [NOS:0] pl_outs_ready;  // Ready signals for pipeline outputs
+  decoded_instr_t [NOS:0] pl_ins;        // Pipeline stage input data buses
+  logic [NOS:0]           pl_ins_valid;  // Pipeline stage input valid flags
+  logic [NOS:0]           pl_ins_ready;  // Pipeline stage input ready backpressure
+  decoded_instr_t [NOS:0] pl_outs;       // Pipeline stage output data buses
+  logic [NOS:0]           pl_outs_valid; // Pipeline stage output valid flags
+  logic [NOS:0]           pl_outs_ready; // Pipeline stage output ready backpressure
 
-  logic [NR-1:0] locks[NOS+2];  // Lock signals propagating between order_checker
-  logic mem_busy[NOS+2];  // Memory busy signals propagating between order_checker
+  logic [NR-1:0] locks[NOS+2];  // Propagated register lock status chain
+  logic          mem_busy[NOS+2]; // Propagated memory busy status chain
 
-  logic [NOS:0] arb_req;  // Arbitration request signals
-  logic [NOS:0] arb_gnt;  // Arbitration grant signals
+  logic [NOS:0] arb_req;  // Arbitration requests from each stage
+  logic [NOS:0] arb_gnt;  // Arbitration grants for each stage
 
-  logic [$clog2(NOS+1)-1:0] gnt_idx;  // Index of granted request
+  logic [$clog2(NOS+1)-1:0] gnt_idx;  // Encoded index of the granted pipeline stage
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // ASSIGNMENTS
@@ -91,7 +94,7 @@ module adn_riscv_instr_launcher #(
   // SUBMODULES
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
-  // Generate pipeline stages
+  // Generate pipeline stages for instruction buffering
   for (genvar i = 0; i < NOS; i++) begin : g_splits
     adn_common_pipeline_split #(
         .DATA_WIDTH($bits(instr_in_i))
@@ -111,7 +114,7 @@ module adn_riscv_instr_launcher #(
     );
   end
 
-  // Final pipeline stage
+  // Final pipeline stage buffer
   adn_common_pipeline #(
       .DATA_WIDTH($bits(instr_in_i))
   ) u_pipeline_final (
@@ -126,8 +129,8 @@ module adn_riscv_instr_launcher #(
       .data_out_ready_i(pl_outs_ready[0])
   );
 
-  // Generate grant checkers for each pipeline stage
-  for (genvar i = 0; i < NOS + 1; i++) begin : g_ckeckers
+  // Generate dependency checkers for each pipeline stage
+  for (genvar i = 0; i < NOS + 1; i++) begin : g_checkers
     adn_riscv_instr_order_checker #() u_order_checker (
         .pl_valid_i(pl_outs_valid[i]),
         .blocking_i(pl_outs[i].blocking),
@@ -162,4 +165,3 @@ module adn_riscv_instr_launcher #(
   );
 
 endmodule
-
