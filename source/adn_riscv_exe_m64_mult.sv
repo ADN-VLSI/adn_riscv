@@ -1,8 +1,10 @@
 /*
 
-@foez-bhai, write the purpose of this module in markdown format here. This is already in multi-line comment, so don't add any additional comment syntax.
+# Purpose
+This module implements a high-performance 64-bit integer multiplier for the RISC-V architecture. It supports standard multiplication (MUL), high-part multiplication (MULH, MULHSU, MULHU), and word-sized multiplication (MULW) operations using a multi-stage pipelined architecture.
 
-@foez-bhai, describe the use case of this module in markdown format here. This is already in multi-line comment, so don't add any additional comment syntax.
+### Use Case
+This module is designed to be integrated into the execution stage of a 64-bit RISC-V processor pipeline. It serves as the primary arithmetic unit for integer multiplication instructions. By utilizing a multi-stage pipeline, it balances high throughput with timing constraints, allowing the processor to handle complex multiplication operations without stalling the execution flow. It is particularly useful in compute-intensive applications requiring frequent 64-bit arithmetic operations.
 
 | REVISION | DATE       | AUTHOR          | DESCRIPTION                                            |
 |----------|------------|-----------------|--------------------------------------------------------|
@@ -17,7 +19,6 @@ See LICENSE file in the project root for full license information
 
 */
 
-// @foez-bhai, add comments to the parameters, ports
 module adn_riscv_exe_m64_mult (
     input logic clk_i,          // Clock input
     input logic arst_ni,        // Asynchronous reset, active low
@@ -40,20 +41,19 @@ module adn_riscv_exe_m64_mult (
     input  logic        ready_i     // Ready input signal
 );
     
-  // @foez-bhai, add comments to the functional blocks, signals, and submodules
-
   //////////////////////////////////////////////////////////////////////////////////////////////////
   //-SIGNALS
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
-  logic q0_valid;
-  logic q0_ready;
+  // Pipeline handshake signals
+  logic q0_valid; // Valid signal for stage 0
+  logic q0_ready; // Ready signal for stage 0
 
-  logic q0_q1_valid;
-  logic q0_q1_ready;
+  logic q0_q1_valid; // Valid signal between stage 0 and 1
+  logic q0_q1_ready; // Ready signal between stage 0 and 1
 
-  logic q1_q2_valid;
-  logic q1_q2_ready;
+  logic q1_q2_valid; // Valid signal between stage 1 and 2
+  logic q1_q2_ready; // Ready signal between stage 1 and 2
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
   //        _            _ _                       ___
@@ -69,6 +69,7 @@ module adn_riscv_exe_m64_mult (
   // FUNC IDENTIFY
   ////////////////////////////////////////////////
 
+  // Check if any multiplication operation is active
   logic this_module;
   assign this_module = MUL_i | MULH_i | MULHSU_i | MULHU_i | MULW_i;
 
@@ -76,6 +77,7 @@ module adn_riscv_exe_m64_mult (
   // INITIAL VALID READY
   ////////////////////////////////////////////////
 
+  // Control logic for input handshake
   assign q0_valid = this_module & valid_i;
   assign ready_o = this_module & q0_ready;
 
@@ -83,6 +85,7 @@ module adn_riscv_exe_m64_mult (
   // MULTIPLIER, MULTIPLICAND, NEGATIVE, WORD, RD
   ////////////////////////////////////////////////
 
+  // Operands and control flags for multiplication
   logic [63:0] multiplier;
   logic [63:0] multiplicand;
   logic        negative;
@@ -92,11 +95,13 @@ module adn_riscv_exe_m64_mult (
     multiplicand = rs1_i;
     negative     = '0;
 
+    // Handle word-sized multiplication sign extension
     if (MULW_i) begin
       multiplier   = {{32{rs2_i[31]}}, rs2_i[31:0]};
       multiplicand = {{32{rs1_i[31]}}, rs1_i[31:0]};
     end
 
+    // Determine sign for signed multiplication
     if (MUL_i | MULH_i | MULW_i) begin
       negative = multiplier[63] ^ multiplicand[63];
       if (multiplier[63]) multiplier = ~multiplier + 1;
@@ -108,12 +113,14 @@ module adn_riscv_exe_m64_mult (
 
   end
 
+  // Flags for operation type
   logic upper;
   always_comb upper = MULH_i | MULHSU_i | MULHU_i;
 
   logic word;
   always_comb word = MULW_i;
 
+  // Precomputed partial products
   logic [67:0] res_0001;
   logic [67:0] res_0011;
   logic [67:0] res_0111;
@@ -132,6 +139,7 @@ module adn_riscv_exe_m64_mult (
   always_comb res_1101 = {res_0001, 2'b0} + res_1001;
   always_comb res_1111 = {res_0011, 2'b0} + res_0011;
 
+  // Pipeline stage 0 registers
   logic [5:0]  rd_q0;
   logic        word_q0;
   logic        upper_q0;
@@ -146,6 +154,7 @@ module adn_riscv_exe_m64_mult (
   logic [67:0] res_1111_q0;
   logic [63:0] multiplier_q0;
 
+  // Stage 0 pipeline register
   adn_common_pipeline #(
       .DATA_WIDTH($bits({rd_q0, word_q0, upper_q0, negative_q0,
                 res_0001_q0, res_0011_q0, res_0111_q0, res_0101_q0,
@@ -179,7 +188,7 @@ module adn_riscv_exe_m64_mult (
   //
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
-  // Crossbar and extension logic
+  // Crossbar and extension logic for partial product selection
   logic [15:0][67:0] ext68_res;
   logic [15:0][67:0] xbar_out;
 
@@ -200,6 +209,7 @@ module adn_riscv_exe_m64_mult (
   always_comb ext68_res['b1110] = {res_0111_q0, 1'b0};
   always_comb ext68_res['b1111] = res_1111_q0;
 
+  // Crossbar submodule to select partial products
   xbar #(
       .NUM_INPUT (16),
       .NUM_OUTPUT(16),
@@ -218,6 +228,7 @@ module adn_riscv_exe_m64_mult (
     end
   end
 
+  // Summation of partial products
   logic [3:0][79:0] res80;
 
   always_comb begin
@@ -226,12 +237,14 @@ module adn_riscv_exe_m64_mult (
     end
   end
 
+  // Pipeline stage 1 registers
   logic [5:0]       rd_q1;
   logic             word_q1;
   logic             upper_q1;
   logic             negative_q1;
   logic [3:0][79:0] res80_q1;
 
+  // Stage 1 pipeline register
   adn_common_pipeline #(
       .DATA_WIDTH($bits({rd_q1, word_q1, upper_q1, negative_q1, res80_q1}))
   ) u_q1 (
@@ -256,6 +269,7 @@ module adn_riscv_exe_m64_mult (
   //
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
+  // Final accumulation and result formatting
   logic [3:0][127:0] res128;
   logic [127:0] final_sum;
   logic [127:0] semi_final_res;
@@ -267,14 +281,18 @@ module adn_riscv_exe_m64_mult (
     end
   end
 
+  // Final summation logic
   always_comb final_sum = {res128[3], 48'b0} + {res128[2], 32'b0} + {res128[1], 16'b0} + res128[0];
 
+  // Apply sign correction
   always_comb semi_final_res = negative_q1 ? ~final_sum + 1 : final_sum;
 
+  // Select high or low part of result
   always_comb final_res = upper_q1 ? semi_final_res[127:64] : semi_final_res[63:0];
 
   logic word_q2;
 
+  // Stage 2 pipeline register (Output stage)
   adn_common_pipeline #(
       .DATA_WIDTH($bits({wr_data_o, word_q2, wr_addr_o}))
   ) u_q2 (
@@ -289,6 +307,7 @@ module adn_riscv_exe_m64_mult (
       .data_out_valid_o(valid_o), .data_out_ready_i(ready_i)
   );
 
+  // Set write size based on word operation
   always_comb wr_size_o = word_q2 ? 2'b10 : 2'b11;
 
 endmodule
