@@ -108,7 +108,8 @@ module adn_riscv_exe_i64_alu
     ADDIW
     ADDW   SUBW   SLLW   SRLW   SRAW
 
-    Exceptional instructions:
+    Exceptional instructions: this module assumes immediate values are inside 
+    operand_b_i
       SLLI  SRLI  SRAI
       SLLIW SRLIW SRAIW
   */
@@ -155,14 +156,26 @@ module adn_riscv_exe_i64_alu
 
     if (word_op_i) begin
       case (alu_op_i)
-        ADD, ADDI, SUB: result_xlen = operand_a_i + operand_b_addsub + sub;
+        ADD, ADDI, SUB: result_word = operand_a_i[31:0] + operand_b_addsub[31:0] + sub;
 
         default: ;
       endcase
     end
     else begin
       case (alu_op_i)
-        ADDW, ADDIW, SUBW: result_word = operand_a_i + operand_b_addsub + sub;
+        ADDW, ADDIW, SUBW: result_xlen = operand_a_i + operand_b_addsub + sub;
+        // RISCV Spec: 
+        // The operand to be shifted is in rs1, and the shift amount is encoded in 
+        //      the lower 6 bits of the I-immediate field for RV64I. In RV64I, only 
+        //      the low 6 bits of rs2 are considered for the shift amount.
+        // ---------------------- My design choice -------------------------------------
+        // SLLI gets its shift amount from immediate. Here operand_b_i is supposed to get 
+        // the immediate value so the lower 6 bit can work. SLTI and others are same.
+        // If the decoder is not producing operands this way, then an extra module can be 
+        //      implemented that will do the immediate assignment to the operand_b based on the 
+        //      instructions
+        SLL, SLLI: result_xlen = operand_a_i << operand_b_i[5:0];
+        SLT, SLTI: result_xlen = $signed(operand_a_i) < $signed(operand_b_i);
         default: ;
       endcase
     end
