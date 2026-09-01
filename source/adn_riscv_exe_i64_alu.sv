@@ -16,9 +16,12 @@ Licensed under the MIT License
 See LICENSE file in the project root for full license information
 
 */
-import adn_riscv_pkg::rv_op_t;
+`include "adn_riscv_pkg.sv"
+
 // @foez---bhai, add comments to the parameters, ports
-module adn_riscv_exe_i64_alu #(
+module adn_riscv_exe_i64_alu
+  import adn_riscv_pkg::rv_op_t;
+#(
     parameter int XLEN = 64
 ) (
 
