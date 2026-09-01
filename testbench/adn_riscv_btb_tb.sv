@@ -4,7 +4,9 @@
 |-----------|------------|-----------------|-------------------------------------------------------|  
 | TC_001    | 2026-09-01 | Shykul Islam Siam | Test case description goes here                       |
 | TC_002    | 2026-09-01 | Shykul Islam Siam | Test case description goes here                       |
-@foez-bhai please add more test cases as here for the DUT below
+| TC_003    | 2026-09-01 | Shykul Islam Siam | Test BTB hit scenario                                 |
+| TC_004    | 2026-09-01 | Shykul Islam Siam | Test BTB miss scenario                                |
+| TC_005    | 2026-09-01 | Shykul Islam Siam | Test BTB reset behavior                               |
 
 | REVISION | DATE       | AUTHOR          | DESCRIPTION                                            |
 |----------|------------|-----------------|--------------------------------------------------------|
@@ -40,7 +42,15 @@ module adn_riscv_btb_tb.sv;
   // SIGNALS
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
-// @foez-bhai please add the DUT signals here
+  logic clk_i;
+  logic arst_ni;
+  logic [63:0] current_addr_i;
+  logic [63:0] next_addr_i;
+  logic [63:0] pc_i;
+  logic is_jump_i;
+  logic match_found_o;
+  logic flush_o;
+  logic [63:0] next_pc_o;
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // VARIABLES
@@ -62,7 +72,20 @@ module adn_riscv_btb_tb.sv;
   // RTLS
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
-  //@foez-bhai please add the DUT here
+  adn_riscv_btb #(
+      .NUM_BTB(32),
+      .XLEN(64)
+  ) dut (
+      .clk_i(clk_i),
+      .arst_ni(arst_ni),
+      .current_addr_i(current_addr_i),
+      .next_addr_i(next_addr_i),
+      .pc_i(pc_i),
+      .is_jump_i(is_jump_i),
+      .match_found_o(match_found_o),
+      .flush_o(flush_o),
+      .next_pc_o(next_pc_o)
+  );
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // METHODS
