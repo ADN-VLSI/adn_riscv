@@ -17,7 +17,7 @@ See LICENSE file in the project root for full license information
 
 */
 
-`include "adn_riscv_pkg.sv"
+//`include "adn_riscv_pkg.sv"
 
 // @foez---bhai, add comments to the parameters, ports
 module adn_riscv_exe_i64_alu
@@ -36,7 +36,6 @@ module adn_riscv_exe_i64_alu
     // ALU operation control
     // ------------------------------------------------
     input rv_op_t     alu_op_i,
-    input  logic      word_op_i, // 1 -> 32bit, 0 -> XLEN operation
 
     // ------------------------------------------------
     // Operands and destination register
@@ -104,6 +103,7 @@ module adn_riscv_exe_i64_alu
   logic [31:0]     result_word;
 
   logic sub;  // decide if the selected instruction/s is subtractor
+  logic [XLEN-1:0] addsub_result; // result for add/sub
   logic [XLEN-1:0] result_comb; // result from the always_comb alu
 
   logic [XLEN-1:0] operand_b_addsub;  // holder for operand b based on sub
@@ -126,24 +126,17 @@ module adn_riscv_exe_i64_alu
   end
 
 
-  always_comb operand_b_addsub = sub ? (~operand_b_i): operand_b_i;
+  always_comb begin
+     operand_b_addsub = sub ? (~operand_b_i): operand_b_i;
+     addsub_result = operand_a_i + operand_b_addsub + sub;
+  end
 
   always_comb begin: operation
     result_xlen = '0;
     result_word = '0;
 
-    if (word_op_i) begin  // word instructions
       case (alu_op_i)
-        ADDW, ADDIW, SUBW:  result_word = operand_a_i[31:0] + operand_b_addsub[31:0] + sub;
-        SLLW, SLLIW:        result_word = operand_a_i[31:0] << operand_b_i[4:0];
-        SRLW, SRLIW:        result_word = operand_a_i[31:0] >> operand_b_i[4:0];
-        SRAW, SRAIW:        result_word = $signed(operand_a_i[31:0]) >>> operand_b_i[4:0];
-        default: ;
-      endcase
-    end
-    else begin      // normal instructions
-      case (alu_op_i)
-        ADD, ADDI, SUB: result_word = operand_a_i + operand_b_addsub + sub;
+        ADD, ADDI, SUB: result_xlen = addsub_result;
         // RISCV Spec:
         // The operand to be shifted is in rs1, and the shift amount is encoded in
         //      the lower 6 bits of the I-immediate field for RV64I. In RV64I, only
@@ -154,21 +147,30 @@ module adn_riscv_exe_i64_alu
         // If the decoder is not producing operands this way, then an extra module can be
         //      implemented that will do the immediate assignment to the operand_b based on the
         //      instructions
-        SLL,  SLLI:  result_xlen = operand_a_i << operand_b_i[5:0];
-        SLT,  SLTI:  result_xlen = $signed(operand_a_i) < $signed(operand_b_i);
-        SLTU, SLTIU: result_xlen = operand_a_i < operand_b_i;
-        XOR,  XORI:  result_xlen = operand_a_i ^ operand_b_i;
-        SRL,  SRLI:  result_xlen = operand_a_i >> operand_b_i[5:0];
-        SRA,  SRAI:  result_xlen = $signed(operand_a_i) >>> operand_b_i[5:0];
-        OR,   ORI:   result_xlen = operand_a_i | operand_b_i;
-        AND,  ANDI:  result_xlen = operand_a_i & operand_b_i;
+        SLL,  SLLI:         result_xlen = operand_a_i << operand_b_i[5:0];
+        SLT,  SLTI:         result_xlen = $signed(operand_a_i) < $signed(operand_b_i);
+        SLTU, SLTIU:        result_xlen = operand_a_i < operand_b_i;
+        XOR,  XORI:         result_xlen = operand_a_i ^ operand_b_i;
+        SRL,  SRLI:         result_xlen = operand_a_i >> operand_b_i[5:0];
+        SRA,  SRAI:         result_xlen = $signed(operand_a_i) >>> operand_b_i[5:0];
+        OR,   ORI:          result_xlen = operand_a_i | operand_b_i;
+        AND,  ANDI:         result_xlen = operand_a_i & operand_b_i;
+        SLLW, SLLIW:        result_word = operand_a_i[31:0] << operand_b_i[4:0];
+        SRLW, SRLIW:        result_word = operand_a_i[31:0] >> operand_b_i[4:0];
+        SRAW, SRAIW:        result_word = $signed(operand_a_i[31:0]) >>> operand_b_i[4:0];
         default: ;
       endcase
-    end
   end:operation
 
   // result selection based on instruction type - normal vs word
-  always_comb result_comb = word_op_i ? {{32{result_word[31]}},result_word} : result_xlen;
+  always_comb begin
+    case (alu_op_i)
+      ADDW, ADDIW, SUBW: result_comb = {{(XLEN-32){addsub_result[31]}},addsub_result[31:0]};
+      SLLW, SLLIW, SRLW,
+      SRLIW, SRAW, SRAIW: result_comb = {{32{result_word[31]}},result_word};
+      default: result_comb = result_xlen;
+    endcase
+  end
 
   // input to the pipeline
   always_comb pipe_data_in = {rd_addr_i, result_comb};
