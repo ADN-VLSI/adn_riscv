@@ -16,11 +16,12 @@ Licensed under the MIT License
 See LICENSE file in the project root for full license information
 
 */
+
 `include "adn_riscv_pkg.sv"
 
 // @foez---bhai, add comments to the parameters, ports
 module adn_riscv_exe_i64_alu
-  import adn_riscv_pkg::rv_op_t;
+  import adn_riscv_pkg::*;
 #(
     parameter int XLEN = 64
 ) (
@@ -30,36 +31,6 @@ module adn_riscv_exe_i64_alu
     // ------------------------------------------------
     input logic clk_i,
     input logic arst_ni,
-
-    // instructions inputs
-    // input logic   ADDI,
-    // input logic   SLTI,
-    // input logic   SLTIU,
-    // input logic   XORI,
-    // input logic   ORI,
-    // input logic   ANDI,
-    // input logic   SLLI,
-    // input logic   SRLI,
-    // input logic   SRAI,
-    // input logic   ADD,
-    // input logic   SUB,
-    // input logic   SLL,
-    // input logic   SLT,
-    // input logic   SLTU,
-    // input logic   XOR,
-    // input logic   SRL,
-    // input logic   SRA,
-    // input logic   OR,
-    // input logic   AND,
-    // input logic   ADDIW,
-    // input logic   SLLIW,
-    // input logic   SRLIW,
-    // input logic   SRAIW,
-    // input logic   ADDW,
-    // input logic   SUBW,
-    // input logic   SLLW,
-    // input logic   SRLW,
-    // input logic   SRAW,
 
     // ------------------------------------------------
     // ALU operation control
@@ -108,7 +79,7 @@ module adn_riscv_exe_i64_alu
     ADDIW
     ADDW   SUBW   SLLW   SRLW   SRAW
 
-    Exceptional instructions: this module assumes immediate values are inside 
+    Exceptional instructions: this module assumes immediate values are inside
     operand_b_i
       SLLI  SRLI  SRAI
       SLLIW SRLIW SRAIW
@@ -130,11 +101,8 @@ module adn_riscv_exe_i64_alu
   logic [XLEN-1:0] result_xlen;
   logic [31:0]     result_word;
 
-  // shift amount
-  logic [5:0] shamt_xlen;
-  logic [4:0] shamt_word;
-
   logic sub;  // decide if the selected instruction/s is subtractor
+  logic [XLEN-1:0] result_comb;
 
   always_comb begin
     sub = '0;
@@ -144,7 +112,7 @@ module adn_riscv_exe_i64_alu
     endcase
   end
 
-  always_comb result_o = word_op_i ? {{32{result_word[31]}},result_word} : result_xlen;
+  always_comb result_comb = word_op_i ? {{32{result_word[31]}},result_word} : result_xlen;
 
   logic [XLEN-1:0] operand_b_addsub;  // holder for operand b based on sub
 
@@ -154,32 +122,64 @@ module adn_riscv_exe_i64_alu
     result_xlen = '0;
     result_word = '0;
 
-    if (word_op_i) begin
+    if (word_op_i) begin  // word instructions
       case (alu_op_i)
-        ADD, ADDI, SUB: result_word = operand_a_i[31:0] + operand_b_addsub[31:0] + sub;
-
+        ADDW, ADDIW, SUBW: result_word = operand_a_i[31:0] + operand_b_addsub[31:0] + sub;
+        SLLW, SLLIW: result_word = operand_a_i[31:0] << operand_b_i[4:0];
+        SRLW, SRLIW: result_word = operand_a_i[31:0] >> operand_b_i[4:0];
+        SRAW, SRAIW: result_word = $signed(operand_a_i[31:0]) >>> operand_b_i[4:0];
         default: ;
       endcase
     end
-    else begin
+    else begin      // normal instructions
       case (alu_op_i)
-        ADDW, ADDIW, SUBW: result_xlen = operand_a_i + operand_b_addsub + sub;
-        // RISCV Spec: 
-        // The operand to be shifted is in rs1, and the shift amount is encoded in 
-        //      the lower 6 bits of the I-immediate field for RV64I. In RV64I, only 
+        ADD, ADDI, SUB: result_word = operand_a_i + operand_b_addsub + sub;
+        // RISCV Spec:
+        // The operand to be shifted is in rs1, and the shift amount is encoded in
+        //      the lower 6 bits of the I-immediate field for RV64I. In RV64I, only
         //      the low 6 bits of rs2 are considered for the shift amount.
         // ---------------------- My design choice -------------------------------------
-        // SLLI gets its shift amount from immediate. Here operand_b_i is supposed to get 
+        // SLLI gets its shift amount from immediate. Here operand_b_i is supposed to get
         // the immediate value so the lower 6 bit can work. SLTI and others are same.
-        // If the decoder is not producing operands this way, then an extra module can be 
-        //      implemented that will do the immediate assignment to the operand_b based on the 
+        // If the decoder is not producing operands this way, then an extra module can be
+        //      implemented that will do the immediate assignment to the operand_b based on the
         //      instructions
-        SLL, SLLI: result_xlen = operand_a_i << operand_b_i[5:0];
-        SLT, SLTI: result_xlen = $signed(operand_a_i) < $signed(operand_b_i);
+        SLL,  SLLI: result_xlen = operand_a_i << operand_b_i[5:0];
+        SLT,  SLTI: result_xlen = $signed(operand_a_i) < $signed(operand_b_i);
+        SLTU, SLTIU: result_xlen = operand_a_i < operand_b_i;
+        XOR,  XORI: result_xlen = operand_a_i ^ operand_b_i;
+        SRL,  SRLI: result_xlen = operand_a_i >> operand_b_i[5:0];
+        SRA,  SRAI: result_xlen = $signed(operand_a_i) >>> operand_b_i[5:0];
+        OR,   ORI: result_xlen = operand_a_i | operand_b_i;
+        AND, ANDI:  result_xlen = operand_a_i & operand_b_i;
         default: ;
       endcase
     end
   end
+
+  logic [XLEN+5-1:0]  pipe_data_in; // extra 5 bit to hold rd_addr_i
+  logic [XLEN+5-1:0]  pipe_data_out; // extra 5 bit to hold rd_addr_i
+
+  always_comb pipe_data_in = {rd_addr_i, result_comb};
+
+  adn_common_pipeline #(
+      .DATA_WIDTH($bits(pipe_data_in))
+  ) u_i64_pipeline (
+      .arst_ni(arst_ni),
+      .clk_i(clk_i),
+      .clear_i('0),
+
+      .data_in_i       ( pipe_data_in ),
+      .data_in_valid_i (valid_i ),
+      .data_in_ready_o (ready_o ),
+
+      .data_out_o      ( pipe_data_out ),
+      .data_out_valid_o( valid_o ),
+      .data_out_ready_i( ready_i )
+  );
+
+  always_comb result_o = pipe_data_out[XLEN-1:0];
+  always_comb rd_addr_o = pipe_data_out[XLEN+5-1:XLEN]; // extracting the addr
 
 endmodule
 
