@@ -38,7 +38,6 @@ module adn_riscv_exe_i64_alu
     input rv_op_t     alu_op_i,
     input  logic      word_op_i, // 1 -> 32bit, 0 -> XLEN operation
 
-
     // ------------------------------------------------
     // Operands and destination register
     // ------------------------------------------------
@@ -97,13 +96,27 @@ module adn_riscv_exe_i64_alu
 
   */
 
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+  // SIGNALS
+  //////////////////////////////////////////////////////////////////////////////////////////////////
   // temp result storage
   logic [XLEN-1:0] result_xlen;
   logic [31:0]     result_word;
 
   logic sub;  // decide if the selected instruction/s is subtractor
-  logic [XLEN-1:0] result_comb;
+  logic [XLEN-1:0] result_comb; // result from the always_comb alu
 
+  logic [XLEN-1:0] operand_b_addsub;  // holder for operand b based on sub
+
+  // for pipeline:
+  //      here both pipe_data_in and pipe_data_out will hold addr along with the result
+  logic [XLEN+5-1:0]  pipe_data_in; // extra 5 bit to hold rd_addr_i
+  logic [XLEN+5-1:0]  pipe_data_out; // extra 5 bit to hold rd_addr_i
+
+
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+  // ASSIGNMENTS
+  //////////////////////////////////////////////////////////////////////////////////////////////////
   always_comb begin
     sub = '0;
     case (alu_op_i)
@@ -112,22 +125,19 @@ module adn_riscv_exe_i64_alu
     endcase
   end
 
-  always_comb result_comb = word_op_i ? {{32{result_word[31]}},result_word} : result_xlen;
-
-  logic [XLEN-1:0] operand_b_addsub;  // holder for operand b based on sub
 
   always_comb operand_b_addsub = sub ? (~operand_b_i): operand_b_i;
 
-  always_comb begin
+  always_comb begin: operation
     result_xlen = '0;
     result_word = '0;
 
     if (word_op_i) begin  // word instructions
       case (alu_op_i)
-        ADDW, ADDIW, SUBW: result_word = operand_a_i[31:0] + operand_b_addsub[31:0] + sub;
-        SLLW, SLLIW: result_word = operand_a_i[31:0] << operand_b_i[4:0];
-        SRLW, SRLIW: result_word = operand_a_i[31:0] >> operand_b_i[4:0];
-        SRAW, SRAIW: result_word = $signed(operand_a_i[31:0]) >>> operand_b_i[4:0];
+        ADDW, ADDIW, SUBW:  result_word = operand_a_i[31:0] + operand_b_addsub[31:0] + sub;
+        SLLW, SLLIW:        result_word = operand_a_i[31:0] << operand_b_i[4:0];
+        SRLW, SRLIW:        result_word = operand_a_i[31:0] >> operand_b_i[4:0];
+        SRAW, SRAIW:        result_word = $signed(operand_a_i[31:0]) >>> operand_b_i[4:0];
         default: ;
       endcase
     end
@@ -144,24 +154,32 @@ module adn_riscv_exe_i64_alu
         // If the decoder is not producing operands this way, then an extra module can be
         //      implemented that will do the immediate assignment to the operand_b based on the
         //      instructions
-        SLL,  SLLI: result_xlen = operand_a_i << operand_b_i[5:0];
-        SLT,  SLTI: result_xlen = $signed(operand_a_i) < $signed(operand_b_i);
+        SLL,  SLLI:  result_xlen = operand_a_i << operand_b_i[5:0];
+        SLT,  SLTI:  result_xlen = $signed(operand_a_i) < $signed(operand_b_i);
         SLTU, SLTIU: result_xlen = operand_a_i < operand_b_i;
-        XOR,  XORI: result_xlen = operand_a_i ^ operand_b_i;
-        SRL,  SRLI: result_xlen = operand_a_i >> operand_b_i[5:0];
-        SRA,  SRAI: result_xlen = $signed(operand_a_i) >>> operand_b_i[5:0];
-        OR,   ORI: result_xlen = operand_a_i | operand_b_i;
-        AND, ANDI:  result_xlen = operand_a_i & operand_b_i;
+        XOR,  XORI:  result_xlen = operand_a_i ^ operand_b_i;
+        SRL,  SRLI:  result_xlen = operand_a_i >> operand_b_i[5:0];
+        SRA,  SRAI:  result_xlen = $signed(operand_a_i) >>> operand_b_i[5:0];
+        OR,   ORI:   result_xlen = operand_a_i | operand_b_i;
+        AND,  ANDI:  result_xlen = operand_a_i & operand_b_i;
         default: ;
       endcase
     end
-  end
+  end:operation
 
-  logic [XLEN+5-1:0]  pipe_data_in; // extra 5 bit to hold rd_addr_i
-  logic [XLEN+5-1:0]  pipe_data_out; // extra 5 bit to hold rd_addr_i
+  // result selection based on instruction type - normal vs word
+  always_comb result_comb = word_op_i ? {{32{result_word[31]}},result_word} : result_xlen;
 
+  // input to the pipeline
   always_comb pipe_data_in = {rd_addr_i, result_comb};
 
+  // result extraction from the pipeline output
+  always_comb result_o = pipe_data_out[XLEN-1:0];
+  always_comb rd_addr_o = pipe_data_out[XLEN+5-1:XLEN]; // extracting the addr
+
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+  // SUBMODULES
+  //////////////////////////////////////////////////////////////////////////////////////////////////
   adn_common_pipeline #(
       .DATA_WIDTH($bits(pipe_data_in))
   ) u_i64_pipeline (
@@ -170,16 +188,13 @@ module adn_riscv_exe_i64_alu
       .clear_i('0),
 
       .data_in_i       ( pipe_data_in ),
-      .data_in_valid_i (valid_i ),
-      .data_in_ready_o (ready_o ),
+      .data_in_valid_i ( valid_i ),
+      .data_in_ready_o ( ready_o ),
 
       .data_out_o      ( pipe_data_out ),
       .data_out_valid_o( valid_o ),
       .data_out_ready_i( ready_i )
   );
-
-  always_comb result_o = pipe_data_out[XLEN-1:0];
-  always_comb rd_addr_o = pipe_data_out[XLEN+5-1:XLEN]; // extracting the addr
 
 endmodule
 
