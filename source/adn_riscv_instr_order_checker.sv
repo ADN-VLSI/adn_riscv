@@ -20,22 +20,21 @@ See LICENSE file in the project root for full license information
 */
 
 module adn_riscv_instr_order_checker #(
-    parameter int NR = 32 // Number of registers to track
+    parameter int NR = 32  // Number of registers to track
 ) (
-    input logic pl_valid_i, // Pipeline stage valid signal
+    input logic                  pl_valid_i,  // Pipeline stage valid signal
+    input logic [$clog2(NR)-1:0] rd_i,        // Destination register index
+    input logic                  blocking_i,  // Signal to force stall all registers
+    input logic [        NR-1:0] reg_req_i,   // Register request mask
+    input logic                  mem_op_i,    // Memory operation flag
 
-    input logic                  blocking_i, // Signal to force stall all registers
-    input logic [$clog2(NR)-1:0] rd_i,       // Destination register index
-    input logic [        NR-1:0] reg_req_i,  // Register request mask
+    input  logic [NR-1:0] locks_i,  // Current register lock status
+    output logic [NR-1:0] locks_o,  // Updated register lock status
 
-    input  logic [NR-1:0] locks_i, // Current register lock status
-    output logic [NR-1:0] locks_o, // Updated register lock status
+    input  logic mem_busy_i,  // Memory busy status input
+    output logic mem_busy_o,  // Memory busy status output
 
-    input  logic mem_op_i,   // Memory operation flag
-    input  logic mem_busy_i, // Memory busy status input
-    output logic mem_busy_o, // Memory busy status output
-
-    output logic arb_req_o // Arbitration request output
+    output logic arb_req_o  // Arbitration request output
 );
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
