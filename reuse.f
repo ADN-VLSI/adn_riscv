@@ -2,6 +2,7 @@ ${ADN_RISCV}/assertion/dummy_checker.sv
 ${ADN_RISCV}/interface/dummy_interface.sv
 ${ADN_RISCV}/source/adn_riscv_btb.sv
 ${ADN_RISCV}/source/adn_riscv_exe_i64_alu.sv
+${ADN_RISCV}/source/adn_riscv_exe_i64_lsu.sv
 ${ADN_RISCV}/source/adn_riscv_exe_m64_mult.sv
 ${ADN_RISCV}/source/adn_riscv_instr_decoder.sv
 ${ADN_RISCV}/source/adn_riscv_instr_launcher.sv

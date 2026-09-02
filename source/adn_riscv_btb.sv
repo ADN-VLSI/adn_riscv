@@ -76,9 +76,7 @@ module adn_riscv_btb #(
   logic [1:0] input_state, output_state;
 
   // State Definitions
-  parameter logic [1:0] INVALID = 2'b00,
-                        VALID_WEAK = 2'b10,
-                        VALID_STRONG = 2'b11;
+  parameter logic [1:0] INVALID = 2'b00, VALID_WEAK = 2'b10, VALID_STRONG = 2'b11;
 
   // Flag to indicate if an empty row is found
   logic empty_found;
@@ -190,7 +188,7 @@ module adn_riscv_btb #(
     // Sequential logic to update strength bits for buffer entries
     always_ff @(posedge clk_i or negedge arst_ni) begin
       if (~arst_ni) begin
-        strength_buffer[i] <= '1;
+        strength_buffer[i] <= '0;
       end else if (write_enable[i]) begin
         strength_buffer[i] <= output_state[0];
       end
