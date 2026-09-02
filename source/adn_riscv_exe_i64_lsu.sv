@@ -1,8 +1,14 @@
 /*
 
-@foez-bhai, write the purpose of this module in markdown format here. This is already in multi-line comment, so don't add any additional comment syntax.
+### Module Purpose
+The `adn_riscv_exe_i64_lsu` module serves as the Load-Store Unit (LSU) for a 64-bit RISC-V processor core. It is responsible for managing memory access operations, including standard loads and stores, atomic memory operations (AMOs), and floating-point memory instructions. The module handles address calculation, data alignment, sign extension, and interfaces with the memory subsystem via a PMI (Processor Memory Interface) protocol.
 
-@foez-bhai, describe the use case of this module in markdown format here. This is already in multi-line comment, so don't add any additional comment syntax.
+### Use Case
+This module acts as the bridge between the execution pipeline and the memory subsystem. Its primary use cases include:
+- **Memory Access:** Executing load and store instructions by calculating effective addresses and managing data alignment for various widths (byte, half-word, word, double-word).
+- **Atomic Operations:** Handling RISC-V atomic memory operations (AMOs) and Load-Reserved/Store-Conditional (LR/SC) sequences to ensure memory consistency in multi-core environments.
+- **Fault Handling:** Monitoring memory responses to detect and report access faults or bus errors.
+- **Data Formatting:** Performing sign extension for sub-word loads and byte-shifting for unaligned memory accesses.
 
 | REVISION | DATE       | AUTHOR          | DESCRIPTION                                            |
 |----------|------------|-----------------|--------------------------------------------------------|
@@ -23,30 +29,29 @@ See LICENSE file in the project root for full license information
 
 `include "adn_riscv_pkg.sv"
 
-// @foez-bhai, add comments to the parameters, ports
 module adn_riscv_exe_i64_lsu
   import adn_riscv_pkg::*;
 #(
-    parameter type rv_op_t   = logic,
-    parameter type pmi_req_t = logic,
-    parameter type pmi_rsp_t = logic
+    parameter type rv_op_t   = logic, // RISC-V operation type definition
+    parameter type pmi_req_t = logic, // PMI request structure type
+    parameter type pmi_rsp_t = logic  // PMI response structure type
 ) (
     input logic clk_i,   // Clock input
     input logic arst_ni, // Asynchronous reset, active low
 
     input  rv_op_t        op_i,     // Operation inputs
-    input  logic   [63:0] rs1_i,    // Source register 1 input
-    input  logic   [63:0] rs2_i,    // Source register 2 input
-    input  logic   [11:0] imm_i,    // Immediate input
+    input  logic   [63:0] rs1_i,    // Source register 1 input (Base address)
+    input  logic   [63:0] rs2_i,    // Source register 2 input (Store data)
+    input  logic   [11:0] imm_i,    // Immediate input (Offset)
     input  logic   [ 5:0] rd_i,     // Destination register input
     input  logic          valid_i,  // Valid input signal
     output logic          ready_o,  // Ready output signal
 
-    output sideband_t dmem_sideband_o,  // Memory sideband signals // TODO
+    output sideband_t dmem_sideband_o,  // Memory sideband signals
     output pmi_req_t  dmem_pmi_req_o,   // PMI request output
     input  pmi_rsp_t  dmem_pmi_rsp_i,   // PMI grant input
 
-    output logic [63:0] wr_data_o,  // Write data output
+    output logic [63:0] wr_data_o,  // Write data output (to register file)
     output logic [ 1:0] wr_size_o,  // Write size output
     output logic [ 5:0] wr_addr_o,  // Write address output
     output logic        valid_o,    // Valid output signal
@@ -56,36 +61,34 @@ module adn_riscv_exe_i64_lsu
     output logic        mem_fault_o        // Memory fault output
 );
 
-  // @foez-bhai, add comments to the functional blocks, signals, and submodules
-
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // SIGNALS
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
-  logic        instr_check_valid;
-  logic        instr_check_ready;
+  logic        instr_check_valid; // Valid signal for instruction check
+  logic        instr_check_ready; // Ready signal for instruction check
 
-  logic [ 1:0] wr_size;
-  logic        wr_sign;
+  logic [ 1:0] wr_size;           // Write size control
+  logic        wr_sign;           // Sign extension control
 
-  logic [ 1:0] wr_size_;
-  logic        wr_sign_;
+  logic [ 1:0] wr_size_;          // Registered write size
+  logic        wr_sign_;          // Registered sign extension control
 
-  logic        hs_cntr_iv;
-  logic        hs_cntr_ir;
-  logic        hs_cntr_ov;
-  logic        hs_cntr_or;
+  logic        hs_cntr_iv;        // Handshake counter input valid
+  logic        hs_cntr_ir;        // Handshake counter input ready
+  logic        hs_cntr_ov;        // Handshake counter output valid
+  logic        hs_cntr_or;        // Handshake counter output ready
 
-  logic        req_fifo_div;
-  logic        req_fifo_dir;
-  logic        req_fifo_dov;
-  logic        req_fifo_dor;
+  logic        req_fifo_div;      // Request FIFO data input valid
+  logic        req_fifo_dir;      // Request FIFO data input ready
+  logic        req_fifo_dov;      // Request FIFO data output valid
+  logic        req_fifo_dor;      // Request FIFO data output ready
 
-  logic        rsp_fifo_dov;
-  logic        rsp_fifo_dor;
+  logic        rsp_fifo_dov;      // Response FIFO data output valid
+  logic        rsp_fifo_dor;      // Response FIFO data output ready
 
-  logic [63:0] mem_rdata;
-  logic        mem_fault;
+  logic [63:0] mem_rdata;         // Memory read data
+  logic        mem_fault;         // Memory fault flag
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // ASSIGNMENTS
@@ -109,38 +112,37 @@ module adn_riscv_exe_i64_lsu
       SB, LB, LBU: begin
         wr_size = 0;
         wr_sign = (op_i == LB);
-        dmem_pmi_req_o.mstrb = 8'b0000_0001;
+        strb = 8'b0000_0001;
       end
 
       SH, LH, LHU: begin
         wr_size = 1;
         wr_sign = (op_i == LH);
-        dmem_pmi_req_o.mstrb = 8'b0000_0011;
+        strb = 8'b0000_0011;
       end
 
       SW, FSW, SC_W, AMOSWAP_W, AMOADD_W, AMOXOR_W, AMOAND_W,
       AMOOR_W, AMOMIN_W, AMOMAX_W, AMOMINU_W, AMOMAXU_W, LW, LWU: begin
         wr_size = 2;
         wr_sign = (op_i == LW);
-        dmem_pmi_req_o.mstrb = 8'b0000_1111;
+        strb = 8'b0000_1111;
       end
 
       SD, FSD, SC_D, AMOSWAP_D, AMOADD_D, AMOXOR_D, AMOAND_D,
       AMOOR_D, AMOMIN_D, AMOMAX_D, AMOMINU_D, AMOMAXU_D, LD: begin
         wr_size = 3;
         wr_sign = 0;
-        dmem_pmi_req_o.mstrb = 8'b1111_1111;
+        strb = 8'b1111_1111;
       end
 
       default: begin
         wr_size = 0;
         wr_sign = 0;
-        dmem_pmi_req_o.mstrb = 8'b0000_0000;
+        strb = 8'b0000_0000;
       end
 
     endcase
-    strb = strb << (dmem_pmi_req_o.maddr[2:0]);
-    dmem_pmi_req_o.mstrb = strb;
+    dmem_pmi_req_o.mstrb = strb << (dmem_pmi_req_o.maddr[2:0]);
   end
 
   always_comb begin
@@ -335,6 +337,7 @@ module adn_riscv_exe_i64_lsu
   // SUBMODULES
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
+  // Input handshake combiner
   adn_common_hs_combiner #(
       .NUM_TX(1),
       .NUM_RX(4)
@@ -345,6 +348,7 @@ module adn_riscv_exe_i64_lsu
       .ready_i({instr_check_ready, hs_cntr_ir, req_fifo_dir, dmem_pmi_rsp_i.mgnt})
   );
 
+  // Handshake counter for pipeline tracking
   adn_common_hs_counter #(
       .DEPTH    (4),
       .PIPELINED(1)
@@ -359,6 +363,7 @@ module adn_riscv_exe_i64_lsu
       .count_o          ()
   );
 
+  // Request FIFO for address and metadata
   adn_common_fifo #(
       .DATA_WIDTH($bits(dmem_pmi_req_o.maddr) + $bits(rd_i) + $bits(wr_size) + $bits(wr_sign)),
       .FIFO_SIZE (2),
@@ -369,12 +374,13 @@ module adn_riscv_exe_i64_lsu
       .data_in_i       ({dmem_pmi_req_o.maddr, rd_i, wr_size, wr_sign}),
       .data_in_valid_i (req_fifo_div),
       .data_in_ready_o (req_fifo_dir),
-      .data_out_o      ({mem_fault_addr_o, wr_addr_o, wr_size, wr_sign}),
+      .data_out_o      ({mem_fault_addr_o, wr_addr_o, wr_size_, wr_sign_}),
       .data_out_valid_o(req_fifo_dov),
       .data_out_ready_i(req_fifo_dor),
       .count_o         ()
   );
 
+  // Response FIFO for memory read data
   adn_common_fifo #(
       .DATA_WIDTH($bits(dmem_pmi_rsp_i.mrdata) + $bits(dmem_pmi_rsp_i.mresp)),
       .FIFO_SIZE (2),
@@ -391,12 +397,13 @@ module adn_riscv_exe_i64_lsu
       .count_o         ()
   );
 
+  // Output handshake combiner
   adn_common_hs_combiner #(
       .NUM_TX(3),
       .NUM_RX(1)
   ) hs_comb_out (
       .valid_i({hs_cntr_ov, req_fifo_dov, rsp_fifo_dov}),
-      .ready_o({hs_cntr_ir, req_fifo_dir, rsp_fifo_dor}),
+      .ready_o({hs_cntr_or, req_fifo_dor, rsp_fifo_dor}),
       .valid_o(valid_o),
       .ready_i(ready_i)
   );
