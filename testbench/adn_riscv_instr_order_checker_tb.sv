@@ -36,7 +36,7 @@
 | 0.2      | 2026-09-02 | Ahasan Ullah Khalid          | Added structural edge sync, sweep tasks & random suite |
 | 1.0      | 2026-09-02 | Ahasan Ullah Khalid          | Unified consolidated regression testbench              |
 
-Author : Ahasan Ullah Khalid (aukhalid02@gmail.com), Foez Ahmed (foez.official@gmail.com)
+Author : Ahasan Ullah Khalid (aukhalid02@gmail.com), Md Sakhawat Hossain Sabbir (foez.official@gmail.com)
 This file is part of ADN-VLSI/adn_riscv
 Copyright (c) 2026 ADN Semiconductors
 Licensed under the MIT License
