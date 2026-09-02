@@ -3,8 +3,8 @@
 | TEST CASE  | DATE       | AUTHOR                     | DESCRIPTION                                                                                          |
 |------------|------------|----------------------------|------------------------------------------------------------------------------------------------------|
 | TC_DIR_01  | 2026-09-02 | Ahasan Ullah Khalid        | Clean dispatch check across all destination registers with no hazards                                |
-| TC_RAW_01  | 2026-09-02 | Ahasan Ullah Khalid        | Exhaustive single-bit, multi-bit, and walking bit RAW hazard stalls across all register positions   |
-| TC_MEM_01  | 2026-09-02 | Ahasan Ullah Khalid        | Comprehensive memory hazard verification (busy stall, free dispatch, ALU bypass, passthroughs)        |
+| TC_RAW_01  | 2026-09-02 | Ahasan Ullah Khalid        | Exhaustive single-bit, multi-bit, and walking bit RAW hazard stalls across all register positions    |
+| TC_MEM_01  | 2026-09-02 | Ahasan Ullah Khalid        | Comprehensive memory hazard verification (busy stall, free dispatch, ALU bypass, passthroughs)       |
 | TC_BLK_01  | 2026-09-02 | Ahasan Ullah Khalid        | Global blocking barrier verification (all registers locked when valid, ignored when pl_valid low)    |
 | TC_ACC_01  | 2026-09-02 | Ahasan Ullah Khalid        | Sequential multi-instruction scoreboard lock accumulation chain verification                         |
 | TC_MSK_01  | 2026-09-02 | Ahasan Ullah Khalid        | Request and lock mask isolation, zero request mask bypass, and all-register lock saturation check    |
@@ -15,8 +15,8 @@
 | TC_004     | 2026-09-02 | Md Sakhawat Hossain Sabbir | RAW hazard stalls dispatch                                                                           |
 | TC_005     | 2026-09-02 | Md Sakhawat Hossain Sabbir | Memory operation stalled while memory busy                                                           |
 | TC_006     | 2026-09-02 | Md Sakhawat Hossain Sabbir | Memory operation proceeds when memory free                                                           |
-| TC_007     | 2026-09-02 | Md Sakhawat Hossain Sabbir | mem_busy_o passthrough with mem_op_i deasserted                                                       |
-| TC_008     | 2026-09-02 | Md Sakhawat Hossain Sabbir | mem_busy_o passthrough with mem_op_i asserted                                                         |
+| TC_007     | 2026-09-02 | Md Sakhawat Hossain Sabbir | mem_busy_o passthrough with mem_op_i deasserted                                                      |
+| TC_008     | 2026-09-02 | Md Sakhawat Hossain Sabbir | mem_busy_o passthrough with mem_op_i asserted                                                        |
 | TC_009     | 2026-09-02 | Md Sakhawat Hossain Sabbir | Partial register request overlap triggers stall                                                      |
 | TC_010     | 2026-09-02 | Md Sakhawat Hossain Sabbir | Destination register boundary (MSB) lock set                                                         |
 | TC_011     | 2026-09-02 | Md Sakhawat Hossain Sabbir | Destination register boundary (LSB) lock set                                                         |
