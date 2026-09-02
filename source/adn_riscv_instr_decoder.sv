@@ -98,7 +98,7 @@ module adn_riscv_instr_decoder
 
   always_comb timm[0]     = encoded_instr_i[25:25];
   always_comb timm[1]     = encoded_instr_i[26:26];
-  always_comb timm[31:2]  = encoded_instr_i[26:26];
+  always_comb timm[31:2]  = '0;
 
   always_comb uimm[11:0]  = '0;
   always_comb uimm[31:12] = encoded_instr_i[31:12];

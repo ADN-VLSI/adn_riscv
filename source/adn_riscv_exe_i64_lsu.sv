@@ -1,8 +1,8 @@
 /*
 
-@foez---bhai, write the purpose of this module in markdown format here. This is already in multi-line comment, so don't add any additional comment syntax.
+@foez-bhai, write the purpose of this module in markdown format here. This is already in multi-line comment, so don't add any additional comment syntax.
 
-@foez---bhai, describe the use case of this module in markdown format here. This is already in multi-line comment, so don't add any additional comment syntax.
+@foez-bhai, describe the use case of this module in markdown format here. This is already in multi-line comment, so don't add any additional comment syntax.
 
 | REVISION | DATE       | AUTHOR          | DESCRIPTION                                            |
 |----------|------------|-----------------|--------------------------------------------------------|
@@ -21,50 +21,9 @@ See LICENSE file in the project root for full license information
 // LR_W SC_W AMOSWAP_W AMOADD_W AMOXOR_W AMOAND_W AMOOR_W AMOMIN_W AMOMAX_W AMOMINU_W AMOMAXU_W
 // LR_D SC_D AMOSWAP_D AMOADD_D AMOXOR_D AMOAND_D AMOOR_D AMOMIN_D AMOMAX_D AMOMINU_D AMOMAXU_D
 
-/*
-
-  typedef struct packed {
-    logic [63:0] maddr;
-    logic        mwe;
-    logic [63:0] mwdata;
-    logic [ 7:0] mstrb;
-    logic        mreq;
-  } pmi_req_t;
-
-  typedef struct packed {
-    logic        mgnt;
-    logic        mack;
-    logic [63:0] mrdata;
-    logic        mresp;
-  } pmi_rsp_t;
-
-  typedef enum [3:0] {
-    NONE,
-    LR,
-    SC,
-    AMOSWAP,
-    AMOADD,
-    AMOXOR,
-    AMOAND,
-    AMOOR,
-    AMOMIN,
-    AMOMAX,
-    AMOMINU,
-    AMOMAXU
-  } amo_op_t;
-
-  typedef struct packed {
-    logic   aq;
-    logic   rl;
-    logic   doubleword;
-    amo_op_t op;
-  } sideband_t;
-
-*/
-
 `include "adn_riscv_pkg.sv"
 
-// @foez---bhai, add comments to the parameters, ports
+// @foez-bhai, add comments to the parameters, ports
 module adn_riscv_exe_i64_lsu
   import adn_riscv_pkg::*;
 #(
@@ -97,15 +56,7 @@ module adn_riscv_exe_i64_lsu
     output logic        mem_fault_o        // Memory fault output
 );
 
-  // @foez---bhai, add comments to the functional blocks, signals, and submodules
-
-  //////////////////////////////////////////////////////////////////////////////////////////////////
-  // LOCALPARAMS GENERATED
-  //////////////////////////////////////////////////////////////////////////////////////////////////
-
-  //////////////////////////////////////////////////////////////////////////////////////////////////
-  // TYPEDEFS
-  //////////////////////////////////////////////////////////////////////////////////////////////////
+  // @foez-bhai, add comments to the functional blocks, signals, and submodules
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // SIGNALS
@@ -193,6 +144,130 @@ module adn_riscv_exe_i64_lsu
   end
 
   always_comb begin
+    case (op_i)
+      LR_W: begin
+        dmem_sideband_o.op = LR;
+        dmem_sideband_o.doubleword = '0;
+      end
+
+      SC_W: begin
+        dmem_sideband_o.op = SC;
+        dmem_sideband_o.doubleword = '0;
+      end
+
+      AMOSWAP_W: begin
+        dmem_sideband_o.op = AMOSWAP;
+        dmem_sideband_o.doubleword = '0;
+      end
+
+      AMOADD_W: begin
+        dmem_sideband_o.op = AMOADD;
+        dmem_sideband_o.doubleword = '0;
+      end
+
+      AMOXOR_W: begin
+        dmem_sideband_o.op = AMOXOR;
+        dmem_sideband_o.doubleword = '0;
+      end
+
+      AMOAND_W: begin
+        dmem_sideband_o.op = AMOAND;
+        dmem_sideband_o.doubleword = '0;
+      end
+
+      AMOOR_W: begin
+        dmem_sideband_o.op = AMOOR;
+        dmem_sideband_o.doubleword = '0;
+      end
+
+      AMOMIN_W: begin
+        dmem_sideband_o.op = AMOMIN;
+        dmem_sideband_o.doubleword = '0;
+      end
+
+      AMOMAX_W: begin
+        dmem_sideband_o.op = AMOMAX;
+        dmem_sideband_o.doubleword = '0;
+      end
+
+      AMOMINU_W: begin
+        dmem_sideband_o.op = AMOMINU;
+        dmem_sideband_o.doubleword = '0;
+      end
+
+      AMOMAXU_W: begin
+        dmem_sideband_o.op = AMOMAXU;
+        dmem_sideband_o.doubleword = '0;
+      end
+
+      LR_D: begin
+        dmem_sideband_o.op = LR;
+        dmem_sideband_o.doubleword = '1;
+      end
+
+      SC_D: begin
+        dmem_sideband_o.op = SC;
+        dmem_sideband_o.doubleword = '1;
+      end
+
+      AMOSWAP_D: begin
+        dmem_sideband_o.op = AMOSWAP;
+        dmem_sideband_o.doubleword = '1;
+      end
+
+      AMOADD_D: begin
+        dmem_sideband_o.op = AMOADD;
+        dmem_sideband_o.doubleword = '1;
+      end
+
+      AMOXOR_D: begin
+        dmem_sideband_o.op = AMOXOR;
+        dmem_sideband_o.doubleword = '1;
+      end
+
+      AMOAND_D: begin
+        dmem_sideband_o.op = AMOAND;
+        dmem_sideband_o.doubleword = '1;
+      end
+
+      AMOOR_D: begin
+        dmem_sideband_o.op = AMOOR;
+        dmem_sideband_o.doubleword = '1;
+      end
+
+      AMOMIN_D: begin
+        dmem_sideband_o.op = AMOMIN;
+        dmem_sideband_o.doubleword = '1;
+      end
+
+      AMOMAX_D: begin
+        dmem_sideband_o.op = AMOMAX;
+        dmem_sideband_o.doubleword = '1;
+      end
+
+      AMOMINU_D: begin
+        dmem_sideband_o.op = AMOMINU;
+        dmem_sideband_o.doubleword = '1;
+      end
+
+      AMOMAXU_D: begin
+        dmem_sideband_o.op = AMOMAXU;
+        dmem_sideband_o.doubleword = '1;
+      end
+
+      default: begin
+        dmem_sideband_o.op = NONE;
+        dmem_sideband_o.doubleword = '0;
+      end
+
+    endcase
+
+    dmem_sideband_o.aq = imm_i[1];
+    dmem_sideband_o.rl = imm_i[0];
+
+  end
+
+  always_comb begin
     instr_check_ready = instr_check_valid & op_i inside {
       LB,
       LH,
@@ -267,7 +342,7 @@ module adn_riscv_exe_i64_lsu
       .valid_i(valid_i),
       .ready_o(ready_o),
       .valid_o({instr_check_valid, hs_cntr_iv, req_fifo_div, dmem_pmi_req_o.mreq}),
-      .ready_i({instr_check_ready, hs_cntr_ir, req_fifo_dir, dmem_pmi_rsp_i.mgnt}),
+      .ready_i({instr_check_ready, hs_cntr_ir, req_fifo_dir, dmem_pmi_rsp_i.mgnt})
   );
 
   adn_common_hs_counter #(
@@ -325,26 +400,5 @@ module adn_riscv_exe_i64_lsu
       .valid_o(valid_o),
       .ready_i(ready_i)
   );
-
-  //////////////////////////////////////////////////////////////////////////////////////////////////
-  // SEQUENTIALS
-  //////////////////////////////////////////////////////////////////////////////////////////////////
-
-  //////////////////////////////////////////////////////////////////////////////////////////////////
-  // INITIAL CHECKS
-  //////////////////////////////////////////////////////////////////////////////////////////////////
-
-  //////////////////////////////////////////////////////////////////////////////////////////////////
-  // METHODS
-  //////////////////////////////////////////////////////////////////////////////////////////////////
-
-  //////////////////////////////////////////////////////////////////////////////////////////////////
-  // ASSERTIONS
-  //////////////////////////////////////////////////////////////////////////////////////////////////
-
-  //////////////////////////////////////////////////////////////////////////////////////////////////
-  // INITIAL CHECKS
-  //////////////////////////////////////////////////////////////////////////////////////////////////
-
 
 endmodule

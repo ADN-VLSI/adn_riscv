@@ -191,7 +191,7 @@ package adn_riscv_pkg;
   } rv_op_t;
 
   // AMO operation enumeration
-  typedef enum [3:0] {
+  typedef enum logic [3:0] {
     NONE,
     LR,
     SC,
