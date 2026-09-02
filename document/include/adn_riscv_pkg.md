@@ -7,6 +7,13 @@
 _None_
 
 
+## Typedefs
+
+|Name|
+|-|
+|sideband_t|
+
+
 ## Description
 
 _No top-level description found._

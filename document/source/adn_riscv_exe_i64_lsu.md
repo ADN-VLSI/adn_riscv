@@ -32,7 +32,7 @@
 |rd_i|input|logic [ 5:0]||Destination register input|
 |valid_i|input|logic||Valid input signal|
 |ready_o|output|logic||Ready output signal|
-|dmem_sideband_o|output|sideband_t||Memory sideband signals|
+|dmem_sideband_o|output|sideband_t||Memory sideband signals // TODO|
 |dmem_pmi_req_o|output|pmi_req_t||PMI request output|
 |dmem_pmi_rsp_i|input|pmi_rsp_t||PMI grant input|
 |wr_data_o|output|logic [63:0]||Write data output|
@@ -40,7 +40,7 @@
 |wr_addr_o|output|logic [ 5:0]||Write address output|
 |valid_o|output|logic||Valid output signal|
 |ready_i|input|logic||Ready input signal|
-|mem_addr_o|output|logic [63:0]||Memory address output|
+|mem_fault_addr_o|output|logic [63:0]||Memory address output|
 |mem_fault_o|output|logic||Memory fault output|
 
 
