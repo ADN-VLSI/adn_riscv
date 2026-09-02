@@ -37,7 +37,7 @@
 <polygon points="685,495 705,495 715,485 735,485 735,495 735,505 715,505 705,495 685,495"/>
 <text x="680" y="485" dominant-baseline="hanging" text-anchor="end" font-size="20" style="fill:black;stroke:black;stroke-width:0">ready_i</text>
 <polygon points="685,595 705,595 705,585 725,585 735,595 725,605 705,605 705,595 685,595"/>
-<text x="680" y="585" dominant-baseline="hanging" text-anchor="end" font-size="20" style="fill:black;stroke:black;stroke-width:0">mem_addr_o</text>
+<text x="680" y="585" dominant-baseline="hanging" text-anchor="end" font-size="20" style="fill:black;stroke:black;stroke-width:0">mem_fault_addr_o</text>
 <polygon points="685,645 705,645 705,635 725,635 735,645 725,655 705,655 705,645 685,645"/>
 <text x="680" y="635" dominant-baseline="hanging" text-anchor="end" font-size="20" style="fill:black;stroke:black;stroke-width:0">mem_fault_o</text>
 <text x="372" y="700" dominant-baseline="hanging" text-anchor="middle" font-size="30" style="fill:black;stroke:black;stroke-width:0">adn_riscv_exe_i64_lsu</text>
