@@ -20,12 +20,12 @@
 |Name|Direction|Type|Dimension|Description|
 |-|-|-|-|-|
 |pl_valid_i|input|logic|||
-|blocking_i|input|logic||Signal to force stall all registers|
 |rd_i|input|logic [$clog2(NR)-1:0]||Destination register index|
+|blocking_i|input|logic||Signal to force stall all registers|
 |reg_req_i|input|logic [ NR-1:0]||Register request mask|
+|mem_op_i|input|logic||Memory operation flag|
 |locks_i|input|logic [NR-1:0]|||
 |locks_o|output|logic [NR-1:0]||Updated register lock status|
-|mem_op_i|input|logic||Memory operation flag|
 |mem_busy_i|input|logic|||
 |mem_busy_o|output|logic||Memory busy status output|
 |arb_req_o|output|logic||Arbitration request output|
