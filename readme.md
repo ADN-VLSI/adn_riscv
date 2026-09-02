@@ -2,6 +2,7 @@
 
 ## SOURCE
 [`adn_riscv_btb`](document/source/adn_riscv_btb.md)
+[`adn_riscv_exe_i64_alu`](document/source/adn_riscv_exe_i64_alu.md)
 [`adn_riscv_exe_i64_lsu`](document/source/adn_riscv_exe_i64_lsu.md)
 [`adn_riscv_exe_m64_mult`](document/source/adn_riscv_exe_m64_mult.md)
 [`adn_riscv_instr_decoder`](document/source/adn_riscv_instr_decoder.md)
