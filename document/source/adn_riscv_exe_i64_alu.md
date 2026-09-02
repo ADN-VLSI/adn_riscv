@@ -22,7 +22,6 @@
 |clk_i|input|logic||------------------------------------------------ required for pipelining ------------------------------------------------|
 |arst_ni|input|logic|||
 |alu_op_i|input|rv_op_t||------------------------------------------------ ALU operation control ------------------------------------------------|
-|word_op_i|input|logic||1 -> 32bit, 0 -> XLEN operation|
 |operand_a_i|input|logic [XLEN-1:0]||contents of the register: operand value|
 |operand_b_i|input|logic [XLEN-1:0]||contents of the register: operand value, or|
 |rd_addr_i|input|logic [4:0]||index of the destination register|
