@@ -17,7 +17,7 @@ See LICENSE file in the project root for full license information
 
 */
 
-//`include "adn_riscv_pkg.sv"
+`include "adn_riscv_pkg.sv"
 
 // @foez---bhai, add comments to the parameters, ports
 module adn_riscv_exe_i64_alu
