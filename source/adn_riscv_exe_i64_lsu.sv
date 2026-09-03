@@ -32,9 +32,9 @@ See LICENSE file in the project root for full license information
 module adn_riscv_exe_i64_lsu
   import adn_riscv_pkg::*;
 #(
-    parameter type rv_op_t   = logic, // RISC-V operation type definition
-    parameter type pmi_req_t = logic, // PMI request structure type
-    parameter type pmi_rsp_t = logic  // PMI response structure type
+    parameter type rv_op_t   = logic,  // RISC-V operation type definition
+    parameter type pmi_req_t = logic,  // PMI request structure type
+    parameter type pmi_rsp_t = logic   // PMI response structure type
 ) (
     input logic clk_i,   // Clock input
     input logic arst_ni, // Asynchronous reset, active low
@@ -65,30 +65,30 @@ module adn_riscv_exe_i64_lsu
   // SIGNALS
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
-  logic        instr_check_valid; // Valid signal for instruction check
-  logic        instr_check_ready; // Ready signal for instruction check
+  logic        instr_check_valid;  // Valid signal for instruction check
+  logic        instr_check_ready;  // Ready signal for instruction check
 
-  logic [ 1:0] wr_size;           // Write size control
-  logic        wr_sign;           // Sign extension control
+  logic [ 1:0] wr_size;  // Write size control
+  logic        wr_sign;  // Sign extension control
 
-  logic [ 1:0] wr_size_;          // Registered write size
-  logic        wr_sign_;          // Registered sign extension control
+  logic [ 1:0] wr_size_;  // Registered write size
+  logic        wr_sign_;  // Registered sign extension control
 
-  logic        hs_cntr_iv;        // Handshake counter input valid
-  logic        hs_cntr_ir;        // Handshake counter input ready
-  logic        hs_cntr_ov;        // Handshake counter output valid
-  logic        hs_cntr_or;        // Handshake counter output ready
+  logic        hs_cntr_iv;  // Handshake counter input valid
+  logic        hs_cntr_ir;  // Handshake counter input ready
+  logic        hs_cntr_ov;  // Handshake counter output valid
+  logic        hs_cntr_or;  // Handshake counter output ready
 
-  logic        req_fifo_div;      // Request FIFO data input valid
-  logic        req_fifo_dir;      // Request FIFO data input ready
-  logic        req_fifo_dov;      // Request FIFO data output valid
-  logic        req_fifo_dor;      // Request FIFO data output ready
+  logic        req_fifo_div;  // Request FIFO data input valid
+  logic        req_fifo_dir;  // Request FIFO data input ready
+  logic        req_fifo_dov;  // Request FIFO data output valid
+  logic        req_fifo_dor;  // Request FIFO data output ready
 
-  logic        rsp_fifo_dov;      // Response FIFO data output valid
-  logic        rsp_fifo_dor;      // Response FIFO data output ready
+  logic        rsp_fifo_dov;  // Response FIFO data output valid
+  logic        rsp_fifo_dor;  // Response FIFO data output ready
 
-  logic [63:0] mem_rdata;         // Memory read data
-  logic        mem_fault;         // Memory fault flag
+  logic [63:0] mem_rdata;  // Memory read data
+  logic        mem_fault;  // Memory fault flag
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // ASSIGNMENTS
@@ -102,6 +102,9 @@ module adn_riscv_exe_i64_lsu
 
   // Write data from source register 2
   always_comb dmem_pmi_req_o.mwdata = rs2_i << (8 * (dmem_pmi_req_o.maddr[2:0]));
+
+  // Memory fault output assignment based on memory fault flag and response FIFO handshake
+  always_comb mem_fault_o = mem_fault & rsp_fifo_dov & rsp_fifo_dor;
 
   // Write strobe signal based on operation
   always_comb begin
@@ -313,7 +316,7 @@ module adn_riscv_exe_i64_lsu
 
   always_comb begin
     logic [63:0] data_out;
-    data_out  = mem_rdata;
+    data_out = mem_rdata;
     data_out = data_out >> (mem_fault_addr_o[2:0] * 8);
     case (wr_size_)
       0: data_out = data_out & 64'h0000_0000_0000_00FF;
