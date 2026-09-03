@@ -314,7 +314,7 @@ module adn_riscv_exe_i64_lsu
   always_comb begin
     logic [63:0] data_out;
     data_out  = mem_rdata;
-    mem_rdata = mem_rdata >> (mem_fault_addr_o[2:0] * 8);
+    data_out = data_out >> (mem_fault_addr_o[2:0] * 8);
     case (wr_size_)
       0: data_out = data_out & 64'h0000_0000_0000_00FF;
       1: data_out = data_out & 64'h0000_0000_0000_FFFF;
