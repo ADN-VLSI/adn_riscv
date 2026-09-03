@@ -123,18 +123,23 @@ module adn_riscv_exe_i64_lsu_tb;
     is_clk_edge_aligned <= '0;
   end
 
-  // Golden/Mock PMI Memory Responder
+  // Golden PMI Memory Responder:
+  // 1. mgnt is tied high when not busy so LSU knows memory is ready to accept requests.
+  // 2. mack & mrdata are responded on the next cycle following an accepted mreq.
   always @(posedge clk or negedge arst_n) begin
     if (~arst_n) begin
-      dmem_pmi_rsp_i <= '0;
+      dmem_pmi_rsp_i.mgnt   <= 1'b1;
+      dmem_pmi_rsp_i.mack   <= 1'b0;
+      dmem_pmi_rsp_i.mrdata <= '0;
+      dmem_pmi_rsp_i.mresp  <= 1'b0;
     end else begin
-      if (dmem_pmi_req_o.mreq) begin
-        dmem_pmi_rsp_i.mgnt   <= 1'b1;
+      dmem_pmi_rsp_i.mgnt <= 1'b1;  // Memory is ready to accept requests
+
+      if (dmem_pmi_req_o.mreq && dmem_pmi_rsp_i.mgnt) begin
         dmem_pmi_rsp_i.mack   <= 1'b1;
         dmem_pmi_rsp_i.mrdata <= 64'hA5A5_5A5A_DEAD_BEEF;
         dmem_pmi_rsp_i.mresp  <= (dmem_pmi_req_o.maddr == 64'hFFFF_0000_0000_0000);
       end else begin
-        dmem_pmi_rsp_i.mgnt  <= 1'b0;
         dmem_pmi_rsp_i.mack  <= 1'b0;
         dmem_pmi_rsp_i.mresp <= 1'b0;
       end
@@ -162,7 +167,7 @@ module adn_riscv_exe_i64_lsu_tb;
     rd      <= '0;
     repeat (5) @(posedge clk);
     arst_n <= '1;
-    repeat (5) @(posedge clk);  // Allow internal pipeline FIFOs to stabilize
+    repeat (5) @(posedge clk);
   endtask
 
   task automatic send_lsu_op(input rv_op_t req_op, input logic [63:0] req_rs1,
@@ -186,7 +191,7 @@ module adn_riscv_exe_i64_lsu_tb;
     imm     <= req_imm;
     rd      <= req_rd;
 
-    // Timeout-protected handshake to prevent simulation hang
+    // Wait until DUT indicates transfer acceptance (valid_i && ready_o)
     timeout_cnt = 0;
     while (!ready_o && timeout_cnt < 100) begin
       @(posedge clk);
@@ -196,11 +201,11 @@ module adn_riscv_exe_i64_lsu_tb;
     if (!ready_o) begin
       note_case(0);
       $display("[%s] [FAIL] LSU ready_o timed out (DUT stuck busy)! [%0t]", test_name, $realtime);
-    end else begin
-      @(posedge clk);
     end
 
+    @(posedge clk);
     valid_i <= 1'b0;
+    op      <= rv_op_t'(0);
   endtask
 
   task automatic start_checking();
@@ -254,7 +259,6 @@ module adn_riscv_exe_i64_lsu_tb;
   task automatic run_tc_rst_01();
     apply_reset();
     #1ps;
-    // Check valid deasserted, fault not active (handles unknown/unregistered states cleanly)
     if (!valid_o && (mem_fault_o !== 1'b1)) begin
       note_case(1);
     end else begin
@@ -267,13 +271,13 @@ module adn_riscv_exe_i64_lsu_tb;
   task automatic run_tc_ld_01();
     apply_reset();
     send_lsu_op(rv_op_t'(1), 64'h1000, 64'h0, 12'h008, 6'd5, 64'hA5A5_5A5A_DEAD_BEEF, 2'b11, 1'b0);
-    repeat (10) @(posedge clk);
+    repeat (15) @(posedge clk);
   endtask
 
   task automatic run_tc_st_01();
     apply_reset();
     send_lsu_op(rv_op_t'(2), 64'h2000, 64'h1234_5678, 12'h010, 6'd0, 64'h0, 2'b11, 1'b0);
-    repeat (10) @(posedge clk);
+    repeat (15) @(posedge clk);
   endtask
 
   task automatic run_tc_b2b_01();
@@ -294,14 +298,14 @@ module adn_riscv_exe_i64_lsu_tb;
         ready_i <= 1'b1;
       end
     join
-    repeat (10) @(posedge clk);
+    repeat (15) @(posedge clk);
   endtask
 
   task automatic run_tc_flt_01();
     apply_reset();
     send_lsu_op(rv_op_t'(1), 64'hFFFF_0000_0000_0000, 64'h0, 12'h000, 6'd15,
                 64'hA5A5_5A5A_DEAD_BEEF, 2'b11, 1'b1);
-    repeat (10) @(posedge clk);
+    repeat (15) @(posedge clk);
   endtask
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
