@@ -48,7 +48,7 @@ This module is designed to be integrated into the execution stage of a 64-bit RI
 
 | REVISION | DATE       | AUTHOR          | DESCRIPTION                                            |
 |----------|------------|-----------------|--------------------------------------------------------|
-| 0.1      | 2026-09-01 | Foez Ahmed | Initial version                                        |
-| 1.0      | 2026-09-01 | Foez Ahmed | Stable release                                         |
+| 0.1      | 2026-09-01 | Foez Ahmed      | Initial version                                        |
+| 1.0      | 2026-09-01 | Foez Ahmed      | Stable release                                         |
 
 Author : Foez Ahmed (foez.official@gmail.com)
