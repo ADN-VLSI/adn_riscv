@@ -8,6 +8,8 @@
 
 <img src="./adn_riscv_exe_m64_mult_top.svg">
 
+<img src="./adn_riscv_exe_m64_mult_des.svg">
+
 ## Parameters
 
 _None_

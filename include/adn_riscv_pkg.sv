@@ -3,6 +3,7 @@
 
 package adn_riscv_pkg;
 
+  // RISC-V operation enumeration
   typedef enum logic [7:0] {
     // INVALID
     INVALID_INSTRUCTION,
@@ -188,6 +189,30 @@ package adn_riscv_pkg;
     FMV_D_X
 
   } rv_op_t;
+
+  // AMO operation enumeration
+  typedef enum logic [3:0] {
+    NONE,
+    LR,
+    SC,
+    AMOSWAP,
+    AMOADD,
+    AMOXOR,
+    AMOAND,
+    AMOOR,
+    AMOMIN,
+    AMOMAX,
+    AMOMINU,
+    AMOMAXU
+  } amo_op_t;
+
+  // Sideband information for AMO instructions
+  typedef struct packed {
+    logic   aq;
+    logic   rl;
+    logic   doubleword;
+    amo_op_t op;
+  } sideband_t;
 
 endpackage
 

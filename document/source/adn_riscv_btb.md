@@ -8,6 +8,8 @@
 
 <img src="./adn_riscv_btb_top.svg">
 
+<img src="./adn_riscv_btb_des.svg">
+
 ## Parameters
 
 |Name|Type|Dimension|Default|Description|
