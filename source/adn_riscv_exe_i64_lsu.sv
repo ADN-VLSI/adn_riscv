@@ -273,7 +273,7 @@ module adn_riscv_exe_i64_lsu
   end
 
   always_comb begin
-    instr_check_ready = instr_check_valid & op_i inside {
+    instr_check_ready = op_i inside {
       LB,
       LH,
       LW,
