@@ -1,8 +1,10 @@
 /*
 
-@foez-bhai, write the purpose of this module in markdown format here. This is already in multi-line comment, so don't add any additional comment syntax.
+### Purpose
+This module functions as a Write-Back (WB) multiplexer for the ADN-RISC-V core. It aggregates multiple write-back requests from various pipeline stages or functional units, arbitrates between them based on a fixed priority scheme, and routes the selected data and address to the register file write port, including necessary sign-extension logic.
 
-@foez-bhai, describe the use case of this module in markdown format here. This is already in multi-line comment, so don't add any additional comment syntax.
+### Use Case
+The `adn_riscv_wb_mux` is utilized at the final stage of the pipeline where multiple execution units (e.g., ALU, Load-Store Unit, Multiplier) attempt to write results back to the register file simultaneously. It ensures that only one valid result is committed per cycle based on the configured priority, preventing structural hazards and ensuring data integrity during the write-back phase.
 
 | REVISION | DATE       | AUTHOR          | DESCRIPTION                                            |
 |----------|------------|-----------------|--------------------------------------------------------|
@@ -25,35 +27,35 @@ See LICENSE file in the project root for full license information
 //  } write_back_t;
 
 
-// @foez-bhai, add comments to the parameters, ports
 module adn_riscv_wb_mux #(
-    parameter type write_back_t = logic,
-    parameter int NUM_REQ = 4,
-    parameter bit HIGH_INDEX_PRIORITY = 0
+    parameter type write_back_t = logic,          // Data structure for WB request
+    parameter int NUM_REQ = 4,                    // Number of input request ports
+    parameter bit HIGH_INDEX_PRIORITY = 0         // Priority scheme: 0=Low index, 1=High index
 ) (
-    input  write_back_t [NUM_REQ-1:0] wb_i,
-    input  logic        [NUM_REQ-1:0] req_i,
-    output logic        [NUM_REQ-1:0] gnt_o,
+    input  write_back_t [NUM_REQ-1:0] wb_i,       // Array of WB data inputs
+    input  logic        [NUM_REQ-1:0] req_i,      // Request signals for each port
+    output logic        [NUM_REQ-1:0] gnt_o,      // Grant signals for each port
 
-    output logic [ 5:0] rd_addr_o,
-    output logic [63:0] rd_data_o,
-    output logic        rd_en_o
+    output logic [ 5:0] rd_addr_o,                // Selected register write address
+    output logic [63:0] rd_data_o,                // Selected sign-extended write data
+    output logic        rd_en_o                   // Write enable signal
 );
-
-  // @foez-bhai, add comments to the functional blocks, signals, and submodules
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // SIGNALS
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
+  // Index of the currently granted request port
   logic [$clog2(NUM_REQ)-1:0] port_idx;
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // ASSIGNMENTS
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
+  // Route the address from the selected port to the output
   always_comb rd_addr_o = wb_i[port_idx].addr;
 
+  // Functional block: Sign-extension logic based on data size and sign bit
   always_comb begin
     logic [63:0] data;
     data = wb_i[port_idx].data;
@@ -75,6 +77,7 @@ module adn_riscv_wb_mux #(
   // SUBMODULES
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
+  // Submodule: Fixed priority arbiter to select which request gets access to the register file
   adn_common_fixed_priority_arbiter #(
       .NUM_REQ(NUM_REQ),
       .HIGH_INDEX_PRIORITY(HIGH_INDEX_PRIORITY)
