@@ -1,16 +1,17 @@
 /*
 
-| TEST CASE | DATE       | AUTHOR          | DESCRIPTION                                           |
-|-----------|------------|-----------------|-------------------------------------------------------|
+| TEST CASE | DATE       | AUTHOR             | DESCRIPTION                                           |
+|-----------|------------|--------------------|-------------------------------------------------------|
 | TC_001    | 2026-09-07 | Adnan Sami Anirban | Reset state — in_ready high, out_valid low, buffer empty |
 | TC_002    | 2026-09-07 | Adnan Sami Anirban | Single instruction pass-through — data integrity check |
 | TC_003    | 2026-09-07 | Adnan Sami Anirban | Buffer depth: fill to capacity, backpressure on input, in-order drain |
 | TC_004    | 2026-09-07 | Adnan Sami Anirban | instr_out_valid_o is gated by instr_out_ready_i — no data loss while stalled |
 | TC_005    | 2026-09-07 | Adnan Sami Anirban | RAW hazard: younger instr needing an older instr's rd must not launch first |
-| TC_006..  | TBD        | (team)          | blocking-stall / bypass / mem_op / clear-flush / randomized regression |
+| TC_006    | 2026-09-08 | Motasim Faiyaz     | blocking-stall / bypass / mem_op / clear-flush / randomized regression |
+| TC_007    | 2026-09-08 | Motasim Faiyaz     | independent-bypass / mem_op / clear-flush / randomized regression |
 
-| REVISION | DATE       | AUTHOR          | DESCRIPTION                                            |
-|----------|------------|-----------------|--------------------------------------------------------|
+| REVISION | DATE       | AUTHOR             | DESCRIPTION                                            |
+|----------|------------|--------------------|--------------------------------------------------------|
 | 0.1      | 2026-09-07 | Adnan Sami Anirban | Initial version                                        |
 
 Author : Adnan Sami Anirban (adnananirban259@gmail.com)
