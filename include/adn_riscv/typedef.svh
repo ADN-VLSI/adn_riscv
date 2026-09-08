@@ -46,9 +46,9 @@ See LICENSE file in the project root for full license information
     typedef struct packed {                                                                        \
       logic [``__CLOG2_NUM_REGS__``-1:0] addr;  /* Destination register index */                   \
       logic [          ``__XLEN__``-1:0] data;  /* Destination register data */                    \
-      logic                              size;  /* Destination register size */                    \
+      logic                        [1:0] size;  /* Destination register size */                    \
       logic                              sign;  /* Destination register signedness */              \
-    } ``__NM__``_write_back_t;
+    } ``__NM__``_write_back_t;                                                                     \
 
 
 `endif
