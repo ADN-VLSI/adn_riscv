@@ -24,9 +24,9 @@ See LICENSE file in the project root for full license information
 */
 
 module adn_riscv_instr_launcher #(
-    parameter type decoded_instr_t = logic, // Data type for the decoded instruction
-    parameter int  NR              = 32,    // Number of registers to track for dependencies
-    parameter int  NOS             = 8      // Number of pipeline stages
+    parameter type decoded_instr_t = logic,  // Data type for the decoded instruction
+    parameter int  NR              = 32,     // Number of registers to track for dependencies
+    parameter int  NOS             = 8       // Number of pipeline stages
 ) (
     input logic arst_ni,  // Asynchronous reset, active low
     input logic clk_i,    // Clock input
@@ -49,15 +49,15 @@ module adn_riscv_instr_launcher #(
 
   logic [NOS:0] clears;  // Clear signals for individual pipeline stages
 
-  decoded_instr_t [NOS:0] pl_ins;        // Pipeline stage input data buses
-  logic [NOS:0]           pl_ins_valid;  // Pipeline stage input valid flags
-  logic [NOS:0]           pl_ins_ready;  // Pipeline stage input ready backpressure
-  decoded_instr_t [NOS:0] pl_outs;       // Pipeline stage output data buses
-  logic [NOS:0]           pl_outs_valid; // Pipeline stage output valid flags
-  logic [NOS:0]           pl_outs_ready; // Pipeline stage output ready backpressure
+  decoded_instr_t [NOS:0] pl_ins;  // Pipeline stage input data buses
+  logic [NOS:0] pl_ins_valid;  // Pipeline stage input valid flags
+  logic [NOS:0] pl_ins_ready;  // Pipeline stage input ready backpressure
+  decoded_instr_t [NOS:0] pl_outs;  // Pipeline stage output data buses
+  logic [NOS:0] pl_outs_valid;  // Pipeline stage output valid flags
+  logic [NOS:0] pl_outs_ready;  // Pipeline stage output ready backpressure
 
   logic [NR-1:0] locks[NOS+2];  // Propagated register lock status chain
-  logic          mem_busy[NOS+2]; // Propagated memory busy status chain
+  logic mem_busy[NOS+2];  // Propagated memory busy status chain
 
   logic [NOS:0] arb_req;  // Arbitration requests from each stage
   logic [NOS:0] arb_gnt;  // Arbitration grants for each stage
@@ -85,8 +85,8 @@ module adn_riscv_instr_launcher #(
   // Generate clear signals for pipeline stages
   always_comb begin
     clears[NOS] = clear_i;
-      for (int i = NOS; i > 0; i--) begin : g_clears
-        clears[i-1] = clears[i] & (gnt_idx != i);
+    for (int i = NOS; i > 0; i--) begin : g_clears
+      clears[i-1] = clears[i] & (gnt_idx != i);
     end
   end
 
@@ -131,11 +131,13 @@ module adn_riscv_instr_launcher #(
 
   // Generate dependency checkers for each pipeline stage
   for (genvar i = 0; i < NOS + 1; i++) begin : g_checkers
-    adn_riscv_instr_order_checker #() u_order_checker (
+    adn_riscv_instr_order_checker #(
+        .NR(NR)
+    ) u_order_checker (
         .pl_valid_i(pl_outs_valid[i]),
         .blocking_i(pl_outs[i].blocking),
         .rd_i      (pl_outs[i].rd),
-        .reg_req_i (pl_outs[i].reg_req),
+        .reg_req_i (pl_outs[i].reg_reqs),
         .locks_i   (locks[i]),
         .locks_o   (locks[i+1]),
         .mem_op_i  (pl_outs[i].mem_op),
