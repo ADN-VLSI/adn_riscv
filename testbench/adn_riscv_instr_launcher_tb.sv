@@ -273,152 +273,16 @@ module adn_riscv_instr_launcher_tb;
   end
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
-  // TEST SCENARIOS
+  // INCLUDE TEST CASES
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
-  task automatic tc_001_reset_state();
-    apply_reset();
-    check("TC001_reset_in_ready_high", instr_in_ready_o == 1'b1);
-    check("TC001_reset_out_valid_low", instr_out_valid_o == 1'b0);
-  endtask
-
-  task automatic tc_002_single_passthrough();
-    instr_t exp;
-    bit     ok;
-    apply_reset();
-    instr_out_ready_i = 1'b1;
-    exp = make_instr(8'd1, 1'b0, 3'd3, 8'b0000_0000, 1'b0);
-    drive_instr(exp);
-    wait_launch_count(1, 20, ok);
-    check("TC002_launched", ok);
-    check("TC002_data_matches", ok && data_ok[tag(exp)]);
-  endtask
-
-  task automatic tc_003_depth_and_backpressure();
-    instr_t items[4];
-    bit     ok;
-    apply_reset();
-    instr_out_ready_i = 1'b0;  // hold output back so the buffer actually fills up
-
-    for (int i = 0; i < NOS + 1; i++)
-      items[i] = make_instr(8'(10 + i), 1'b0, logic'(i), '0, 1'b0);
-
-    foreach (items[i]) drive_instr(items[i]);
-
-    // buffer should now be at capacity (NOS+1 slots occupied) -> input backpressure expected
-    tick();
-    check("TC003_full_backpressure", instr_in_ready_o == 1'b0);
-
-    // now drain: release output ready and let all four come out in order
-    instr_out_ready_i = 1'b1;
-    wait_launch_count(NOS + 1, 30, ok);
-    check("TC003_all_drained", ok);
-    ok = 1'b1;
-    for (int i = 0; i < NOS + 1; i++) begin
-      instr_t exp_item;
-      byte    got_id;
-      byte    exp_id;
-      exp_item = items[i];
-      exp_id   = byte'(tag(exp_item));
-      got_id   = g_launched_id_q[i];
-      if (got_id != exp_id) ok = 1'b0;
-    end
-    check("TC003_drain_order_correct", ok);
-
-    // buffer now empty -> in_ready should be back up
-    check("TC003_ready_after_drain", instr_in_ready_o == 1'b1);
-  endtask
-
-  task automatic tc_004_valid_ready_gating();
-    instr_t exp;
-    bit     ok;
-    apply_reset();
-    instr_out_ready_i = 1'b0;
-    exp = make_instr(8'd20, 1'b0, 3'd1, '0, 1'b0);
-    drive_instr(exp);
-
-    repeat (4) tick();
-    check("TC004_valid_gated_off", instr_out_valid_o == 1'b0);  // valid is gated off while ready is low
-    check("TC004_nothing_lost_while_stalled", g_launched_id_q.size() == 0);  // and nothing was lost/skipped
-
-    instr_out_ready_i = 1'b1;
-    wait_launch_count(1, 10, ok);
-    check("TC004_launches_intact_after_stall", ok && data_ok[tag(exp)]);  // same instruction still shows up intact
-  endtask
-
-  task automatic tc_005_raw_hazard();
-    instr_t a, b;
-    bit     ok;
-    apply_reset();
-    instr_out_ready_i = 1'b1;
-    locks_i           = 8'b0010_0000;  // externally lock reg5 (models an outstanding writeback)
-
-    a = make_instr(8'd30, 1'b0, 3'd2, 8'b0010_0000, 1'b0);  // needs reg5 (locked) -> stalls itself
-    b = make_instr(8'd31, 1'b0, 3'd6, 8'b0000_0100, 1'b0);  // needs reg2 == a.rd -> true RAW dep on a
-
-    drive_instr(a);
-    drive_instr(b);
-
-    repeat (10) tick();
-    check("TC005_no_launch_while_locked", g_launched_id_q.size() == 0);  // neither should have launched while reg5 is locked
-
-    locks_i = '0;  // release the external lock
-    wait_launch_count(2, 20, ok);
-    check("TC005_both_launched_after_release", ok);
-    check("TC005_order_a_then_b", ok && (g_launched_id_q[0] == byte'(tag(a))) && (g_launched_id_q[1] == byte'(tag(b))));
-  endtask
-
-// TC_006 : a blocking instruction must hold back a younger instruction even when their
-  // registers are disjoint (blocking locks everything behind it, not just overlapping regs).
-  task automatic tc_006_blocking_stalls_disjoint();
-    instr_t c, d;
-    bit     ok;
-    apply_reset();
-    instr_out_ready_i = 1'b1;
-    locks_i           = 8'b1000_0000;  // externally lock reg7 so c itself stalls for a while
-
-    c = make_instr(8'd40, 1'b1, 3'd0, 8'b1000_0000, 1'b0);  // blocking=1, needs reg7 (locked)
-    d = make_instr(8'd41, 1'b0, 3'd1, 8'b0000_0001, 1'b0);  // needs reg0 - disjoint from c
-
-    drive_instr(c);
-    drive_instr(d);
-
-    repeat (10) tick();
-    // d must be held back purely by c's blocking flag, not by any real shared-register dep
-    check("TC006_no_launch_while_c_blocking", g_launched_id_q.size() == 0);
-
-    locks_i = '0;
-    wait_launch_count(2, 20, ok);
-    check("TC006_both_launched_after_release", ok);
-    check("TC006_order_c_then_d", ok && (g_launched_id_q[0] == byte'(tag(c))) && (g_launched_id_q[1] == byte'(tag(d))));
-  endtask
-
-// TC_007 : an older instruction stalled on an EXTERNAL lock (not blocking) must not hold back
-  // an independent younger instruction - the younger one may bypass and launch first.
-  task automatic tc_007_independent_bypass();
-    instr_t e, f;
-    bit     ok;
-    apply_reset();
-    instr_out_ready_i = 1'b1;
-    locks_i           = 8'b1000_0000;  // lock reg7
-
-    e = make_instr(8'd50, 1'b0, 3'd4, 8'b1000_0000, 1'b0);  // stuck on reg7, not blocking
-    f = make_instr(8'd51, 1'b0, 3'd2, 8'b0000_0010, 1'b0);  // needs reg1, disjoint from e (rd=4)
-
-    drive_instr(e);
-    drive_instr(f);
-
-    wait_launch_count(1, 15, ok);
-    check("TC007_something_launched", ok);
-    // f should be the one that got through, while e is still stuck on the external lock
-    check("TC007_f_bypassed_e", ok && (g_launched_id_q[0] == byte'(tag(f))));
-    check("TC007_e_still_resident", resident[tag(e)] == 1'b1);
-
-    locks_i = '0;  // release; e can now launch too
-    wait_launch_count(2, 15, ok);
-    check("TC007_e_launches_after_release", ok);
-  endtask
-
+  `include "adn_riscv_instr_launcher_tb/tc_01.sv"
+  `include "adn_riscv_instr_launcher_tb/tc_02.sv"
+  `include "adn_riscv_instr_launcher_tb/tc_03.sv"
+  `include "adn_riscv_instr_launcher_tb/tc_04.sv"
+  `include "adn_riscv_instr_launcher_tb/tc_05.sv"
+  `include "adn_riscv_instr_launcher_tb/tc_06.sv"
+  `include "adn_riscv_instr_launcher_tb/tc_07.sv"
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // PROCEDURALS
