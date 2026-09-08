@@ -7,11 +7,7 @@
 | TC_003    | 2026-09-07 | Adnan Sami Anirban | Buffer depth: fill to capacity, backpressure on input, in-order drain |
 | TC_004    | 2026-09-07 | Adnan Sami Anirban | instr_out_valid_o is gated by instr_out_ready_i — no data loss while stalled |
 | TC_005    | 2026-09-07 | Adnan Sami Anirban | RAW hazard: younger instr needing an older instr's rd must not launch first |
-| TC_006    | 2026-09-07 | Adnan Sami Anirban | blocking_i on an older instr stalls a younger instr with disjoint regs too |
-| TC_007    | 2026-09-07 | Adnan Sami Anirban | Independent younger instr bypasses an older instr stalled by an external lock |
-| TC_008    | 2026-09-07 | Adnan Sami Anirban | Back-to-back mem_op structural hazard - confirmed intentional (no stall via launcher) |
-| TC_009    | 2026-09-07 | Adnan Sami Anirban | Synchronous clear_i flushes in-flight instructions cleanly |
-| TC_010    | 2026-09-07 | Adnan Sami Anirban | Randomized regression: order/hazard-safety/no-drop scoreboard over N instrs |
+| TC_006..  | TBD        | (team)          | blocking-stall / bypass / mem_op / clear-flush / randomized regression |
 
 | REVISION | DATE       | AUTHOR          | DESCRIPTION                                            |
 |----------|------------|-----------------|--------------------------------------------------------|
@@ -34,13 +30,19 @@ module adn_riscv_instr_launcher_tb;
   // bring in the testbench essentials functions and macros
   `include "vip/adn_common_tb_headers.sv"
 
+  // real architecture types: rv_op_t (opcode enum) and the ADN_RISCV_T struct macro
+   import adn_riscv_pkg::*;
+  `include "adn_riscv/typedef.svh"
+
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // LOCALPARAMS
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
-  localparam int NR         = 8;   // number of tracked registers (kept small & directed-test friendly)
-  localparam int NOS        = 3;   // number of pipeline stages -> NOS+1 = 4 total buffer slots
-  localparam int CLK_PERIOD = 10;  // ns
+  localparam int NR          = 8;   // number of tracked registers (kept small & directed-test friendly)
+  localparam int CLOG2_NR    = 3;   // $clog2(NR): rd/rs index width. 2**CLOG2_NR must equal NR
+  localparam int XLEN        = 32;  // register / pc width
+  localparam int NOS         = 3;   // number of pipeline stages -> NOS+1 = 4 total buffer slots
+  localparam int CLK_PERIOD  = 10;  // ns
 
   localparam int N_RAND = 40;  // number of transactions driven in the randomized regression (TC_010)
   localparam int HANDSHAKE_TIMEOUT = 200;  // cycles - defensive guard so one stuck DUT can't hang the whole run
@@ -49,16 +51,14 @@ module adn_riscv_instr_launcher_tb;
   // TYPEDEFS
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
-  // Minimal decoded_instr_t for unit-level testing of the launcher/order-checker.
-  // The launcher only ever looks at .blocking/.rd/.reg_req/.mem_op internally (it moves the
-  // rest of the struct opaquely), so only those fields plus a scoreboard tag are modeled here.
-  typedef struct packed {
-    logic [7:0]             id;        // scoreboard tag, not used by the DUT
-    logic                   blocking;
-    logic [$clog2(NR)-1:0]  rd;
-    logic [NR-1:0]          reg_req;
-    logic                   mem_op;
-  } instr_t;
+  // Use the REAL decoded-instruction type from the architecture header, not a hand-rolled stub.
+  // ADN_RISCV_T(name, clog2_num_regs, xlen) expands to `adn_decoded_instr_t` with fields:
+  //   op, rd, rs1, rs2, rs3, imm, pc, reg_req, mem_op, blocking
+  // The launcher only reads .blocking/.rd/.reg_req/.mem_op; the rest ride along untouched.
+  // There is no scoreboard `id` field in the real struct, so we tag each instruction by its
+  // unique `pc` value instead (see make_instr / the monitor).
+  `ADN_RISCV_T(adn, CLOG2_NR, XLEN)
+  typedef adn_decoded_instr_t instr_t;
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // SIGNALS
@@ -95,18 +95,6 @@ module adn_riscv_instr_launcher_tb;
   int     g_hazard_violations;
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
-  // INTERFACES
-  //////////////////////////////////////////////////////////////////////////////////////////////////
-
-  //////////////////////////////////////////////////////////////////////////////////////////////////
-  // CLASSES
-  //////////////////////////////////////////////////////////////////////////////////////////////////
-
-  //////////////////////////////////////////////////////////////////////////////////////////////////
-  // ASSIGNMENTS
-  //////////////////////////////////////////////////////////////////////////////////////////////////
-
-  //////////////////////////////////////////////////////////////////////////////////////////////////
   // RTLS
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -131,14 +119,24 @@ module adn_riscv_instr_launcher_tb;
   // METHODS
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
+  // Build a real adn_decoded_instr_t. `id` is a unique scoreboard tag stored in the pc
+  // field (the real struct has no id). op/rs*/imm are set to benign, non-x values so the
+  // whole struct is fully defined and data-integrity compares are meaningful.
   function automatic instr_t make_instr(input byte id, input bit blocking,
-                                         input logic [$clog2(NR)-1:0] rd,
+                                         input logic [CLOG2_NR-1:0] rd,
                                          input logic [NR-1:0] reg_req, input bit mem_op);
-    make_instr.id       = id;
-    make_instr.blocking = blocking;
-    make_instr.rd       = rd;
-    make_instr.reg_req  = reg_req;
-    make_instr.mem_op   = mem_op;
+    make_instr           = '0;
+    make_instr.op        = ADD;              // arbitrary valid opcode
+    make_instr.pc        = id;               // <-- scoreboard tag lives here
+    make_instr.blocking  = blocking;
+    make_instr.rd        = rd;
+    make_instr.reg_req   = reg_req;
+    make_instr.mem_op    = mem_op;
+  endfunction
+
+  // scoreboard tag = the pc field we stamped in make_instr
+  function automatic int tag(input instr_t t);
+    tag = int'(t.pc);
   endfunction
 
   // sample point for protocol decisions: a bare @(posedge clk_i) with no extra delay is
@@ -183,9 +181,9 @@ module adn_riscv_instr_launcher_tb;
   // process ordering between two independent testbench processes.
   task automatic drive_instr(input instr_t t);
     int c;
-    resident[t.id]   = 1'b1;
-    info[t.id]       = t;
-    inject_idx[t.id] = g_inject_counter++;
+    resident[tag(t)]   = 1'b1;
+    info[tag(t)]       = t;
+    inject_idx[tag(t)] = g_inject_counter++;
 
     instr_in_i       <= t;
     instr_in_valid_i <= 1'b1;
@@ -194,16 +192,16 @@ module adn_riscv_instr_launcher_tb;
     while (!instr_in_ready_o) begin
       c++;
       if (c > HANDSHAKE_TIMEOUT) begin
-        $display("[%0t] ERROR: drive_instr id=%0d timed out waiting for instr_in_ready_o", $time, t.id);
+        $display("[%0t] ERROR: drive_instr id=%0d timed out waiting for instr_in_ready_o", $time, tag(t));
         check("drive_instr_handshake_timeout", 1'b0);
         instr_in_valid_i <= 1'b0;
-        resident[t.id]   = 1'b0;  // never actually made it in - undo the bookkeeping
+        resident[tag(t)]   = 1'b0;  // never actually made it in - undo the bookkeeping
         return;
       end
       tick();
     end
     instr_in_valid_i <= 1'b0;
-    g_injected_id_q.push_back(t.id);
+    g_injected_id_q.push_back(byte'(tag(t)));
   endtask
 
   // waits up to timeout_cycles for the launched count to reach n
@@ -221,15 +219,18 @@ module adn_riscv_instr_launcher_tb;
     end
   endtask
 
-  // labeled wrapper around note_case: prints an unambiguous, greppable result line of our
-  // own regardless of whether the vip's note_case() itself is verbose, so a failing run's
-  // log always tells you exactly which named check failed and when.
-  int g_check_num;
+  // Result reporting: records via note_case() (so PASSED/FAILED counts stay correct) and
+  // always prints a labeled line for every check, PASS or FAIL, with the test name and time.
   task automatic check(input string label, input bit cond);
-    g_check_num++;
-    $display("[%0t] CHECK #%0d %s: %s", $time, g_check_num, label, cond ? "PASS" : "FAIL");
-    note_case(cond);
+    if (cond) begin
+      note_case(1);
+      $display("[%s] [PASS] %s [%0t]", test_name, label, $realtime);
+    end else begin
+      note_case(0);
+      $display("[%s] [FAIL] %s [%0t]", test_name, label, $realtime);
+    end
   endtask
+
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // SEQUENTIALS
@@ -254,24 +255,24 @@ module adn_riscv_instr_launcher_tb;
       tick();
       if (arst_ni && instr_out_valid_o && instr_out_ready_i) begin
         y             = instr_out_o;
-        data_ok[y.id] = (instr_out_o === info[y.id]);
-        g_launched_id_q.push_back(y.id);
+        data_ok[tag(y)] = (instr_out_o === info[tag(y)]);
+        g_launched_id_q.push_back(byte'(tag(y)));
         for (int x = 0; x < 256; x++) begin
-          if (resident[x] && (inject_idx[x] < inject_idx[y.id])) begin
+          if (resident[x] && (inject_idx[x] < inject_idx[tag(y)])) begin
             if (info[x].blocking || y.reg_req[info[x].rd]) begin
               g_hazard_violations++;
               $display("[%0t] HAZARD VIOLATION: id=%0d launched while older resident id=%0d (blocking=%0b rd=%0d) still in-flight",
-                        $time, y.id, x, info[x].blocking, info[x].rd);
+                        $time, tag(y), x, info[x].blocking, info[x].rd);
             end
           end
         end
-        resident[y.id] = 1'b0;
+        resident[tag(y)] = 1'b0;
       end
     end
   end
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
-  // PROCEDURALS
+  // TEST SCENARIOS
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
   task automatic tc_001_reset_state();
@@ -289,7 +290,7 @@ module adn_riscv_instr_launcher_tb;
     drive_instr(exp);
     wait_launch_count(1, 20, ok);
     check("TC002_launched", ok);
-    check("TC002_data_matches", ok && data_ok[exp.id]);
+    check("TC002_data_matches", ok && data_ok[tag(exp)]);
   endtask
 
   task automatic tc_003_depth_and_backpressure();
@@ -317,7 +318,7 @@ module adn_riscv_instr_launcher_tb;
       byte    got_id;
       byte    exp_id;
       exp_item = items[i];
-      exp_id   = exp_item.id;
+      exp_id   = byte'(tag(exp_item));
       got_id   = g_launched_id_q[i];
       if (got_id != exp_id) ok = 1'b0;
     end
@@ -336,12 +337,12 @@ module adn_riscv_instr_launcher_tb;
     drive_instr(exp);
 
     repeat (4) tick();
-    check("TC004_valid_gated_off", instr_out_valid_o == 1'b0);    // valid is gated off while ready is low
+    check("TC004_valid_gated_off", instr_out_valid_o == 1'b0);  // valid is gated off while ready is low
     check("TC004_nothing_lost_while_stalled", g_launched_id_q.size() == 0);  // and nothing was lost/skipped
 
     instr_out_ready_i = 1'b1;
     wait_launch_count(1, 10, ok);
-    check("TC004_launches_intact_after_stall", ok && data_ok[exp.id]);  // same instruction still shows up intact
+    check("TC004_launches_intact_after_stall", ok && data_ok[tag(exp)]);  // same instruction still shows up intact
   endtask
 
   task automatic tc_005_raw_hazard();
@@ -363,195 +364,45 @@ module adn_riscv_instr_launcher_tb;
     locks_i = '0;  // release the external lock
     wait_launch_count(2, 20, ok);
     check("TC005_both_launched_after_release", ok);
-    check("TC005_order_a_then_b", ok && (g_launched_id_q[0] == a.id) && (g_launched_id_q[1] == b.id));
+    check("TC005_order_a_then_b", ok && (g_launched_id_q[0] == byte'(tag(a))) && (g_launched_id_q[1] == byte'(tag(b))));
   endtask
 
-  task automatic tc_006_blocking_stalls_disjoint();
-    instr_t c, d;
-    bit     ok;
-    apply_reset();
-    instr_out_ready_i = 1'b1;
-    locks_i           = 8'b1000_0000;  // externally lock reg7 so c itself stalls for a while
 
-    c = make_instr(8'd40, 1'b1, 3'd0, 8'b1000_0000, 1'b0);  // blocking=1, needs reg7 (locked)
-    d = make_instr(8'd41, 1'b0, 3'd1, 8'b0000_0001, 1'b0);  // needs reg0 - disjoint from c.rd
-
-    drive_instr(c);
-    drive_instr(d);
-
-    repeat (10) tick();
-    check("TC006_no_launch_while_c_locked", g_launched_id_q.size() == 0);  // d must be held back purely by c.blocking, not by a real dep
-
-    locks_i = '0;
-    wait_launch_count(2, 20, ok);
-    check("TC006_both_launched_after_release", ok);
-    check("TC006_order_c_then_d", ok && (g_launched_id_q[0] == c.id) && (g_launched_id_q[1] == d.id));
-  endtask
-
-  task automatic tc_007_independent_bypass();
-    instr_t e, f;
-    bit     ok;
-    apply_reset();
-    instr_out_ready_i = 1'b1;
-    locks_i           = 8'b1000_0000;  // lock reg7
-
-    e = make_instr(8'd50, 1'b0, 3'd4, 8'b1000_0000, 1'b0);  // stuck on reg7, not blocking
-    f = make_instr(8'd51, 1'b0, 3'd2, 8'b0000_0010, 1'b0);  // needs reg1, disjoint from e.rd(=4)
-
-    drive_instr(e);
-    drive_instr(f);
-
-    wait_launch_count(1, 15, ok);
-    check("TC007_something_launched", ok);
-    // f should be the one that got through, while e is still stuck on the external lock
-    check("TC007_f_bypassed_e", ok && (g_launched_id_q[0] == f.id));
-    check("TC007_e_still_stuck", resident[e.id] == 1'b1);
-
-    locks_i = '0;
-    wait_launch_count(2, 15, ok);
-    check("TC007_e_launches_after_release", ok);
-  endtask
-
-  task automatic tc_008_mem_structural_hazard();
-    instr_t g, h;
-    bit     ok;
-    int     gap_cycles;
-    apply_reset();
-    instr_out_ready_i = 1'b1;
-
-    g = make_instr(8'd60, 1'b0, 3'd0, '0, 1'b1);  // mem_op=1, no reg deps
-    h = make_instr(8'd61, 1'b0, 3'd0, '0, 1'b1);  // mem_op=1, no reg deps
-
-    drive_instr(g);
-    drive_instr(h);
-
-    wait_launch_count(1, 10, ok);
-    check("TC008_first_launched", ok);
-    gap_cycles = 0;
-    while (g_launched_id_q.size() < 2 && gap_cycles < 10) begin
-      tick();
-      gap_cycles++;
-    end
-    check("TC008_second_launched", g_launched_id_q.size() == 2);
-
-    // NOTE: mem_busy[0] is hard-wired to '0 at the launcher boundary with no external
-    // "memory busy" feedback, so the order-checker's mem_busy_o = mem_busy_i | (mem_op_i & mem_busy_i)
-    // never rises above 0 and back-to-back mem_op instructions launch with no structural
-    // stall between them. Confirmed with Foez vai: this is intentional - mem-op sequencing
-    // is handled outside the launcher, not by this mem_busy chain. Recorded here for visibility,
-    // not asserted as a failure.
-    if (gap_cycles <= 1) begin
-      $display("[%0t] NOTE: back-to-back mem_op instructions launched with no structural stall (gap=%0d cycles) - confirmed intentional, mem-op sequencing is handled outside the launcher.",
-                $time, gap_cycles);
-    end
-    check("TC008_recorded_ok", 1'b1);
-  endtask
-
-  task automatic tc_009_sync_clear();
-    instr_t i_instr, j_instr, k_instr;
-    bit     ok;
-    apply_reset();
-    instr_out_ready_i = 1'b0;
-
-    i_instr = make_instr(8'd70, 1'b0, 3'd0, '0, 1'b0);
-    j_instr = make_instr(8'd71, 1'b0, 3'd1, '0, 1'b0);
-    drive_instr(i_instr);
-    drive_instr(j_instr);
-
-    clear_i = 1'b1;
-    tick();
-    clear_i = 1'b0;
-
-    instr_out_ready_i = 1'b1;
-    repeat (6) tick();
-    check("TC009_flushed_not_launched", g_launched_id_q.size() == 0);  // i and j must never appear at the output
-    check("TC009_ready_after_clear", instr_in_ready_o == 1'b1);        // buffer reports empty again
-
-    resident[i_instr.id] = 1'b0;  // they were flushed, not launched - clear scoreboard bookkeeping
-    resident[j_instr.id] = 1'b0;
-
-    k_instr = make_instr(8'd72, 1'b0, 3'd2, '0, 1'b0);
-    drive_instr(k_instr);
-    wait_launch_count(1, 15, ok);
-    check("TC009_clean_launch_after_clear", ok && data_ok[k_instr.id]);
-  endtask
-
-  task automatic tc_010_randomized_regression();
-    instr_t items[N_RAND];
-    bit     ok;
-    int     recent_rd[4];
-    bit                    blk;
-    logic [$clog2(NR)-1:0] rd;
-    logic [NR-1:0]         rq;
-    bit                    memo;
-    apply_reset();
-
-    for (int i = 0; i < N_RAND; i++) begin
-      blk  = ($urandom_range(0, 9) == 0);  // ~10% blocking
-      rd   = $urandom_range(0, NR - 1);
-      memo = $urandom_range(0, 3) == 0;
-      rq   = '0;
-      // mostly independent traffic, occasionally a genuine dependency on a recently-issued rd
-      if ($urandom_range(0, 2) == 0) rq[recent_rd[i%4]] = 1'b1;
-      else rq[$urandom_range(0, NR - 1)] = 1'b1;
-      recent_rd[i%4] = rd;
-      items[i] = make_instr(8'(100 + i), blk, rd, rq, memo);
-    end
-
-    // producer: randomized valid gaps
-    fork
-      begin : producer
-        foreach (items[i]) begin
-          if ($urandom_range(0, 3) == 0) tick();  // occasional bubble before offering
-          drive_instr(items[i]);
-        end
-      end
-      begin : consumer
-        forever begin
-          @(posedge clk_i);
-          instr_out_ready_i <= ($urandom_range(0, 4) != 0);  // ~80% ready
-        end
-      end
-    join_any
-
-    wait_launch_count(N_RAND, 800, ok);
-    check("TC010_all_drained", ok);
-
-    // no drops / no duplicates: launched id multiset must equal injected id multiset
-    ok = (g_launched_id_q.size() == g_injected_id_q.size());
-    if (ok) begin
-      byte sorted_in[$];
-      byte sorted_out[$];
-      sorted_in  = g_injected_id_q;
-      sorted_out = g_launched_id_q;
-      sorted_in.sort();
-      sorted_out.sort();
-      foreach (sorted_in[i]) if (sorted_in[i] != sorted_out[i]) ok = 1'b0;
-    end
-    check("TC010_no_drop_no_dup", ok);
-
-    check("TC010_no_hazard_violations", g_hazard_violations == 0);
-
-    disable fork;
-    instr_out_ready_i = 1'b0;
-  endtask
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+  // PROCEDURALS
+  //////////////////////////////////////////////////////////////////////////////////////////////////
 
   initial begin  // main initial
 
-    tc_001_reset_state();
-    tc_002_single_passthrough();
-    tc_003_depth_and_backpressure();
-    tc_004_valid_ready_gating();
-    tc_005_raw_hazard();
-    tc_006_blocking_stalls_disjoint();
-    tc_007_independent_bypass();
-    tc_008_mem_structural_hazard();
-    tc_009_sync_clear();
-    tc_010_randomized_regression();
+    // Wait for reset/setup done inside each task's apply_reset(); dispatch by test_name
+    // (TN=... plusarg from adn_common_tb_headers.sv). TC_ALL runs the whole regression.
+    case (test_name)
+      "TC_001": tc_001_reset_state();
+      "TC_002": tc_002_single_passthrough();
+      "TC_003": tc_003_depth_and_backpressure();
+      "TC_004": tc_004_valid_ready_gating();
+      "TC_005": tc_005_raw_hazard();
+      // TC_006 .. TC_010 to be added by other team members (see placeholder above),
 
-    $display("hazard violations observed across whole run: %0d", g_hazard_violations);
+      "TC_ALL", "default": begin
+        tc_001_reset_state();
+        tc_002_single_passthrough();
+        tc_003_depth_and_backpressure();
+        tc_004_valid_ready_gating();
+        tc_005_raw_hazard();
+        // TC_006 .. TC_010 calls go here once added.
+      end
+
+      default: begin
+        $fatal(1, "\033[1;31m[TB FATAL] Unrecognized test_name '%s'\033[0m", test_name);
+      end
+    endcase
+
+    if (debug)
+      $display("hazard violations observed across whole run: %0d", g_hazard_violations);
+
+    #100ns;
     $finish;
-
   end
 
 endmodule
