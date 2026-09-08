@@ -84,10 +84,10 @@ module adn_riscv_instr_launcher #(
 
   // Generate clear signals for pipeline stages
   always_comb begin
-    for (int i = 0; i < NOS; i++) begin : g_clears
-      clears[i] = clears[i+1] & (gnt_idx != (i + 1));
-    end
     clears[NOS] = clear_i;
+      for (int i = NOS; i > 0; i--) begin : g_clears
+        clears[i-1] = clears[i] & (gnt_idx != i);
+    end
   end
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
