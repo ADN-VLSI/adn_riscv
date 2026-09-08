@@ -53,8 +53,8 @@ module adn_riscv_instr_launcher_tb;
 
   // Use the REAL decoded-instruction type from the architecture header, not a hand-rolled stub.
   // ADN_RISCV_T(name, clog2_num_regs, xlen) expands to `adn_decoded_instr_t` with fields:
-  //   op, rd, rs1, rs2, rs3, imm, pc, reg_req, mem_op, blocking
-  // The launcher only reads .blocking/.rd/.reg_req/.mem_op; the rest ride along untouched.
+  //   op, rd, rs1, rs2, rs3, imm, pc, reg_reqs, mem_op, blocking
+  // The launcher only reads .blocking/.rd/.reg_reqs/.mem_op; the rest ride along untouched.
   // There is no scoreboard `id` field in the real struct, so we tag each instruction by its
   // unique `pc` value instead (see make_instr / the monitor).
   `ADN_RISCV_T(adn, CLOG2_NR, XLEN)
@@ -124,13 +124,13 @@ module adn_riscv_instr_launcher_tb;
   // whole struct is fully defined and data-integrity compares are meaningful.
   function automatic instr_t make_instr(input byte id, input bit blocking,
                                          input logic [CLOG2_NR-1:0] rd,
-                                         input logic [NR-1:0] reg_req, input bit mem_op);
+                                         input logic [NR-1:0] reg_reqs, input bit mem_op);
     make_instr           = '0;
     make_instr.op        = ADD;              // arbitrary valid opcode
     make_instr.pc        = id;               // <-- scoreboard tag lives here
     make_instr.blocking  = blocking;
     make_instr.rd        = rd;
-    make_instr.reg_req   = reg_req;
+    make_instr.reg_reqs   = reg_reqs;
     make_instr.mem_op    = mem_op;
   endfunction
 
@@ -259,7 +259,7 @@ module adn_riscv_instr_launcher_tb;
         g_launched_id_q.push_back(byte'(tag(y)));
         for (int x = 0; x < 256; x++) begin
           if (resident[x] && (inject_idx[x] < inject_idx[tag(y)])) begin
-            if (info[x].blocking || y.reg_req[info[x].rd]) begin
+            if (info[x].blocking || y.reg_reqs[info[x].rd]) begin
               g_hazard_violations++;
               $display("[%0t] HAZARD VIOLATION: id=%0d launched while older resident id=%0d (blocking=%0b rd=%0d) still in-flight",
                         $time, tag(y), x, info[x].blocking, info[x].rd);
