@@ -8,8 +8,8 @@ This module is designed to be integrated into the execution stage of a 64-bit RI
 
 | REVISION | DATE       | AUTHOR          | DESCRIPTION                                            |
 |----------|------------|-----------------|--------------------------------------------------------|
-| 0.1      | 2026-09-01 | Foez Ahmed | Initial version                                        |
-| 1.0      | 2026-09-01 | Foez Ahmed | Stable release                                         |
+| 0.1      | 2026-09-01 | Foez Ahmed      | Initial version                                        |
+| 1.0      | 2026-09-01 | Foez Ahmed      | Stable release                                         |
 
 Author : Foez Ahmed (foez.official@gmail.com)
 This file is part of ADN-VLSI/adn_riscv
@@ -46,7 +46,7 @@ module adn_riscv_exe_m64_mult (
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
   // Pipeline handshake signals
-  logic q0_valid; // Valid signal for stage 0
+  logic q0_valid; // Valid signal for stage 0 
   logic q0_ready; // Ready signal for stage 0
 
   logic q0_q1_valid; // Valid signal between stage 0 and 1
@@ -210,14 +210,14 @@ module adn_riscv_exe_m64_mult (
   always_comb ext68_res['b1111] = res_1111_q0;
 
   // Crossbar submodule to select partial products
-  xbar #(
-      .NUM_INPUT (16),
-      .NUM_OUTPUT(16),
+  adn_common_xbar #(
+      .NUM_INPUTS (16),
+      .NUM_OUTPUTS(16),
       .DATA_WIDTH(68)
   ) u_xbar (
-      .input_vector_i(ext68_res),
-      .output_vector_o(xbar_out),
-      .select_vector_i(multiplier_q0)
+      .in_i(ext68_res),
+      .out_o(xbar_out),
+      .sel_i(multiplier_q0)
   );
 
   logic [15:0][79:0] ext80;
