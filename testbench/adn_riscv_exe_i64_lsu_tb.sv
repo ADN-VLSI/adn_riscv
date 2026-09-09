@@ -6,7 +6,7 @@
 | TC_ST_01              | 2026-09-03 | Ahasan Ullah Khalid        | Standard store double-word (SD) operation verifying address and write data        |
 | TC_B2B_01             | 2026-09-03 | Ahasan Ullah Khalid        | Back-to-back load/store pipeline handshaking under writeback backpressure         |
 | TC_FLT_01             | 2026-09-03 | Ahasan Ullah Khalid        | Memory access fault detection and fault address propagation check                 |
-| TC_LOAD_SIZE_01       | 2026-09-03 | Md Sakahwat Hossain Sabbir | Sub-word loads (LB, LBU, LH, LHU, LW, LWU) verifying sign extension and alignment |
+| TC_LOAD_SIZE_01       | 2026-09-03 | Ahasan Ullah Khalid        | Sub-word loads (LB, LBU, LH, LHU, LW, LWU) verifying sign extension and alignment |
 | TC_STORE_SIZE_01      | 2026-09-03 | Md Sakahwat Hossain Sabbir | Sub-word stores (SB, SH, SW) verifying strobe generation and write data           |
 | TC_NEGATIVE_OFFSET_01 | 2026-09-03 | Md Sakahwat Hossain Sabbir | Negative sign-extended immediate offset calculation check                         |
 | TC_BYTE_LANE_01       | 2026-09-03 | Md Sakahwat Hossain Sabbir | Byte lane strobe alignment across unaligned memory addresses                      |
@@ -22,6 +22,7 @@
 | -------- | ---------- | ---------------------------| --------------------------------------------------------------------------------- |
 | 1.0      | 2026-09-03 | Ahasan Ullah Khalid        | Initial testbench release                                                         |
 | 1.1      | 2026-09-03 | Md Sakahwat Hossain Sabbir | Stable Release                                                                    |
+| 1.2      | 2026-09-09 | Ahasan Ullah Khalid        | Final Release                                                                     |
 
 Author : Md Sakhawat Hossain Sabbir (sabbirone939@gmail.com) & Ahasan Ullah Khalid (aukhalid02@gmail.com)
 This file is part of ADN-VLSI/adn_riscv
