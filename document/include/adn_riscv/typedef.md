@@ -9,11 +9,16 @@
 _None_
 
 
+## Include Guard
+
+__GUARD_ADN_RISCV_TYPEDEF_SVH__
+
+
 ## Macros
 
 |Name|Args|Description|Preview|
 |-|-|-|-|
-|ADN_RISCV_T|__NM__, __CLOG2_NUM_REGS__, __XLEN__|Macro to define a decoded instruction structure based on architecture parameters|`define ADN_RISCV_T(__NM__, __CLOG2_NUM_REGS__, __XLEN__)                                         typedef struct packed {|
+|ADN_RISCV_T|__NM__, __CLOG2_NUM_REGS__, __XLEN__|Macro to define a decoded instruction structure based on architecture parameters|`define ADN_RISCV_T(__NM__, __CLOG2_NUM_REGS__, __XLEN__)                                          typedef struct packed {|
 
 
 ## Description

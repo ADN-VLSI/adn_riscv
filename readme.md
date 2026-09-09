@@ -9,6 +9,7 @@
 [`adn_riscv_instr_launcher`](document/source/adn_riscv_instr_launcher.md)
 [`adn_riscv_instr_order_checker`](document/source/adn_riscv_instr_order_checker.md)
 [`adn_riscv_regfile`](document/source/adn_riscv_regfile.md)
+[`adn_riscv_wb_mux`](document/source/adn_riscv_wb_mux.md)
 
 [`adn_common_address_decoder`](https://github.com/ADN-VLSI/adn_common/blob/main/document/source/adn_common_address_decoder.md)
 [`adn_common_bin_to_gray`](https://github.com/ADN-VLSI/adn_common/blob/main/document/source/adn_common_bin_to_gray.md)
