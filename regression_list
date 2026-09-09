@@ -1,4 +1,5 @@
 ci_simulate adn_riscv_instr_decoder_tb TC_ALL 1000
 ci_simulate adn_riscv_instr_order_checker_tb TC_ALL 1000
 ci_simulate adn_riscv_btb_tb TC_ALL 1000
+ci_simulate adn_riscv_exe_i64_alu_tb TC_ALL 1000
 ci_simulate adn_riscv_exe_i64_lsu_tb TC_ALL 1000
