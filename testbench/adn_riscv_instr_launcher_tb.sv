@@ -1,14 +1,22 @@
 /*
 
-| TEST CASE | DATE       | AUTHOR             | DESCRIPTION                                           |
-|-----------|------------|--------------------|-------------------------------------------------------|
-| TC_001    | 2026-09-07 | Adnan Sami Anirban | Reset state — in_ready high, out_valid low, buffer empty |
-| TC_002    | 2026-09-07 | Adnan Sami Anirban | Single instruction pass-through — data integrity check |
-| TC_003    | 2026-09-07 | Adnan Sami Anirban | Buffer depth: fill to capacity, backpressure on input, in-order drain |
-| TC_004    | 2026-09-07 | Adnan Sami Anirban | instr_out_valid_o is gated by instr_out_ready_i — no data loss while stalled |
-| TC_005    | 2026-09-07 | Adnan Sami Anirban | RAW hazard: younger instr needing an older instr's rd must not launch first |
-| TC_006    | 2026-09-08 | Motasim Faiyaz     | blocking-stall / bypass / mem_op / clear-flush / randomized regression |
-| TC_007    | 2026-09-08 | Motasim Faiyaz     | independent-bypass / mem_op / clear-flush / randomized regression |
+| TEST CASE | DATE       | AUTHOR                 | DESCRIPTION                                           |
+|-----------|------------|------------------------|-------------------------------------------------------|
+| TC_001    | 2026-09-07 | Adnan Sami Anirban     | Reset state — in_ready high, out_valid low, buffer empty |
+| TC_002    | 2026-09-07 | Adnan Sami Anirban     | Single instruction pass-through — data integrity check |
+| TC_003    | 2026-09-07 | Adnan Sami Anirban     | Buffer depth: fill to capacity, backpressure on input, in-order drain |
+| TC_004    | 2026-09-07 | Adnan Sami Anirban     | instr_out_valid_o is gated by instr_out_ready_i — no data loss while stalled |
+| TC_005    | 2026-09-07 | Adnan Sami Anirban     | RAW hazard: younger instr needing an older instr's rd must not launch first |
+| TC_006    | 2026-09-08 | Motasim Faiyaz         | blocking-stall / bypass / mem_op / clear-flush / randomized regression |
+| TC_007    | 2026-09-08 | Motasim Faiyaz         | independent-bypass / mem_op / clear-flush / randomized regression |
+| TC_008    | 2026-09-09 | Md. Sakib Hasan Shawon | Simultaneous enqueue and dequeue — verify correct buffer operation when input and output transfers occur in the same cycle |
+| TC_009    | 2026-09-09 | Md. Sakib Hasan Shawon | RAW dependency chain — verify dependent instructions wait for older instructions |
+| TC_010    | 2026-09-09 | Md. Sakib Hasan Shawon | Blocking instruction — verify younger instructions are stalled while an older blocking instruction is resident |
+| TC_011    | 2026-09-09 | Md. Sakib Hasan Shawon | Memory-operation ordering — verify correct ordering and hazard behavior for `mem_op` instructions |
+| TC_012    | 2026-09-09 | Annim Jannat           | Clear/flush — verify buffered instructions are discarded correctly when `clear_i` is asserted |
+| TC_013    | 2026-09-09 | Annim Jannat           | Clear while output is stalled — verify no stale or flushed instruction is launched |
+| TC_014    | 2026-09-09 | Annim Jannat           | Register-lock release — verify instructions proceed correctly after `locks_i` are released |
+
 
 | REVISION | DATE       | AUTHOR             | DESCRIPTION                                            |
 |----------|------------|--------------------|--------------------------------------------------------|
@@ -283,6 +291,13 @@ module adn_riscv_instr_launcher_tb;
   `include "adn_riscv_instr_launcher_tb/tc_05.sv"
   `include "adn_riscv_instr_launcher_tb/tc_06.sv"
   `include "adn_riscv_instr_launcher_tb/tc_07.sv"
+  `include "adn_riscv_instr_launcher_tb/tc_08.sv"
+  `include "adn_riscv_instr_launcher_tb/tc_09.sv"
+  `include "adn_riscv_instr_launcher_tb/tc_10.sv"
+  `include "adn_riscv_instr_launcher_tb/tc_11.sv"
+  `include "adn_riscv_instr_launcher_tb/tc_12.sv"
+  `include "adn_riscv_instr_launcher_tb/tc_13.sv"
+  `include "adn_riscv_instr_launcher_tb/tc_14.sv"
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // PROCEDURALS
@@ -300,7 +315,14 @@ module adn_riscv_instr_launcher_tb;
       "TC_005": tc_005_raw_hazard();
       "TC_006": tc_006_blocking_stalls_disjoint();
       "TC_007": tc_007_independent_bypass();
-      // TC_006 .. TC_010 to be added by other team members (see placeholder above),
+      "TC_008": tc_008_simultaneous_enqueue_dequeue();
+      "TC_009": tc_009_raw_dependency_chain();
+      "TC_010": tc_010_blocking_instruction();
+      "TC_011": tc_011_memory_ordering();
+      "TC_012": tc_012_clear_flush();
+      "TC_013": tc_013_clear_while_output_stalled();
+      "TC_014": tc_014_register_lock_release();
+      
 
       "TC_ALL", "default": begin
         tc_001_reset_state();
@@ -310,7 +332,13 @@ module adn_riscv_instr_launcher_tb;
         tc_005_raw_hazard();
         tc_006_blocking_stalls_disjoint();
         tc_007_independent_bypass();
-        // TC_006 .. TC_010 calls go here once added.
+        tc_008_simultaneous_enqueue_dequeue();
+        tc_009_raw_dependency_chain();
+        tc_010_blocking_instruction();
+        tc_011_memory_ordering();
+        tc_012_clear_flush();
+        tc_013_clear_while_output_stalled();
+        tc_014_register_lock_release();
       end
 
       default: begin
