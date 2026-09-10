@@ -1,28 +1,38 @@
 /*
 
-| TEST CASE | DATE       | AUTHOR                 | DESCRIPTION                                                                                                                |
-|-----------|------------|------------------------|----------------------------------------------------------------------------------------------------------------------------|
-| TC_001    | 2026-09-07 | Adnan Sami Anirban     | Reset state — in_ready high, out_valid low, buffer empty                                                                   |
-| TC_002    | 2026-09-07 | Adnan Sami Anirban     | Single instruction pass-through — data integrity check                                                                     |
-| TC_003    | 2026-09-07 | Adnan Sami Anirban     | Buffer depth: fill to capacity, backpressure on input, in-order drain                                                      |
-| TC_004    | 2026-09-07 | Adnan Sami Anirban     | instr_out_valid_o is gated by instr_out_ready_i — no data loss while stalled                                               |
-| TC_005    | 2026-09-07 | Adnan Sami Anirban     | RAW hazard: younger instr needing an older instr's rd must not launch first                                                |
-| TC_006    | 2026-09-08 | Motasim Faiyaz         | blocking-stall / bypass / mem_op / clear-flush / randomized regression                                                     |
-| TC_007    | 2026-09-08 | Motasim Faiyaz         | independent-bypass / mem_op / clear-flush / randomized regression                                                          |
-| TC_008    | 2026-09-09 | Md. Sakib Hasan Shawon | Simultaneous enqueue and dequeue — verify correct buffer operation when input and output transfers occur in the same cycle |
-| TC_009    | 2026-09-09 | Md. Sakib Hasan Shawon | RAW dependency chain — verify dependent instructions wait for older instructions                                           |
-| TC_010    | 2026-09-09 | Md. Sakib Hasan Shawon | Blocking instruction — verify younger instructions are stalled while an older blocking instruction is resident             |
-| TC_011    | 2026-09-09 | Md. Sakib Hasan Shawon | Memory-operation ordering — verify correct ordering and hazard behavior for `mem_op` instructions                          |
-| TC_012    | 2026-09-09 | Annim Jannat           | Clear/flush — verify buffered instructions are discarded correctly when `clear_i` is asserted                              |
-| TC_013    | 2026-09-09 | Annim Jannat           | Clear while output is stalled — verify no stale or flushed instruction is launched                                         |
-| TC_014    | 2026-09-09 | Annim Jannat           | Register-lock release — verify instructions proceed correctly after `locks_i` are released                                 |
-| TC_ALL    | 2026-09-09 | Annim Jannat           | Run all the above test cases                                                                                               |
+| TEST CASE | DATE       | AUTHOR                     | DESCRIPTION                                                                                                                |
+|-----------|------------|----------------------------|----------------------------------------------------------------------------------------------------------------------------|
+| TC_001    | 2026-09-07 | Adnan Sami Anirban         | Reset state — in_ready high, out_valid low, buffer empty                                                                   |
+| TC_002    | 2026-09-07 | Adnan Sami Anirban         | Single instruction pass-through — data integrity check                                                                     |
+| TC_003    | 2026-09-07 | Adnan Sami Anirban         | Buffer depth: fill to capacity, backpressure on input, in-order drain                                                      |
+| TC_004    | 2026-09-07 | Adnan Sami Anirban         | instr_out_valid_o is gated by instr_out_ready_i — no data loss while stalled                                               |
+| TC_005    | 2026-09-07 | Adnan Sami Anirban         | RAW hazard: younger instr needing an older instr's rd must not launch first                                                |
+| TC_006    | 2026-09-08 | Motasim Faiyaz             | blocking-stall / bypass / mem_op / clear-flush / randomized regression                                                     |
+| TC_007    | 2026-09-08 | Motasim Faiyaz             | independent-bypass / mem_op / clear-flush / randomized regression                                                          |
+| TC_008    | 2026-09-09 | Md. Sakib Hasan Shawon     | Simultaneous enqueue and dequeue — verify correct buffer operation when input and output transfers occur in the same cycle |
+| TC_009    | 2026-09-09 | Md. Sakib Hasan Shawon     | RAW dependency chain — verify dependent instructions wait for older instructions                                           |
+| TC_010    | 2026-09-09 | Md. Sakib Hasan Shawon     | Blocking instruction — verify younger instructions are stalled while an older blocking instruction is resident             |
+| TC_011    | 2026-09-09 | Md. Sakib Hasan Shawon     | Memory-operation ordering — verify correct ordering and hazard behavior for `mem_op` instructions                          |
+| TC_012    | 2026-09-09 | Annim Jannat               | Clear/flush — verify buffered instructions are discarded correctly when `clear_i` is asserted                              |
+| TC_013    | 2026-09-09 | Annim Jannat               | Clear while output is stalled — verify no stale or flushed instruction is launched                                         |
+| TC_014    | 2026-09-09 | Annim Jannat               | Register-lock release — verify instructions proceed correctly after `locks_i` are released                                 |
+| TC_015    | 2026-09-10 | Md Sakhawat Hossain Sabbir | Same-rd instructions with no RAW read dependency — in-order launch must not be driven by rd-equality alone                 |
+| TC_016    | 2026-09-10 | Md Sakhawat Hossain Sabbir | Asynchronous reset mid-stream — resident instructions are wiped and normal operation resumes cleanly afterward             |
+| TC_017    | 2026-09-10 | Md Sakhawat Hossain Sabbir | Multi-bit register lock — launch stays blocked until every requested lock bit clears, not just one of several              |
+| TC_018    | 2026-09-10 | Md Sakhawat Hossain Sabbir | Clear while buffer is completely full and output is stalled — full flush with no stale launches afterward                  |
+| TC_019    | 2026-09-10 | Md Sakhawat Hossain Sabbir | Sustained hazard-free streaming — near one-instruction-per-cycle throughput with no unexpected bubbles                     |
+| TC_ALL    | 2026-09-09 | Md Sakhawat Hossain Sabbir | Run all the above test cases                                                                                               |
 
-| REVISION | DATE       | AUTHOR             | DESCRIPTION                                            |
-|----------|------------|--------------------|--------------------------------------------------------|
-| 0.1      | 2026-09-07 | Adnan Sami Anirban | Initial version                                        |
+| REVISION | DATE       | AUTHOR                     | DESCRIPTION                                            |
+|----------|------------|----------------------------|--------------------------------------------------------|
+| 0.1      | 2026-09-07 | Adnan Sami Anirban         | Initial version & Added TC_001-TC_005                  |
+| 0.2      | 2026-09-08 | Motasim Faiyaz             | Added TC_006 and TC_007                                |
+| 0.3      | 2026-09-09 | Md. Sakib Hasan Shawon     | Added TC_008, TC_009, TC_010, and TC_011               |
+| 0.4      | 2026-09-09 | Annim Jannat               | Added TC_012, TC_013, TC_014                           |
+| 0.5      | 2026-09-10 | Md Sakhawat Hossain Sabbir | Added TC_015-TC_019 & Stable Release                   |
 
-Author : Adnan Sami Anirban (adnananirban259@gmail.com)
+Author : Adnan Sami Anirban (adnananirban259@gmail.com) , Md Sakhawat Hossain Sabbir (sabbirone939@gmail.com) , Motasim Faiyaz (motasimfaiyaz@gmail.com) ,
+Annim Jannat (jannatannim@gmail.com) , Md. Sakib Hasan Shawon (mdsakibhasanshawon20@gmail.com) 
 This file is part of ADN-VLSI/adn_riscv
 Copyright (c) 2026 ADN Semiconductors
 Licensed under the MIT License
@@ -298,6 +308,12 @@ module adn_riscv_instr_launcher_tb;
   `include "adn_riscv_instr_launcher_tb/tc_12.sv"
   `include "adn_riscv_instr_launcher_tb/tc_13.sv"
   `include "adn_riscv_instr_launcher_tb/tc_14.sv"
+  `include "adn_riscv_instr_launcher_tb/tc_15.sv"
+  `include "adn_riscv_instr_launcher_tb/tc_16.sv"
+  `include "adn_riscv_instr_launcher_tb/tc_17.sv"
+  `include "adn_riscv_instr_launcher_tb/tc_18.sv"
+  `include "adn_riscv_instr_launcher_tb/tc_19.sv"
+
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // PROCEDURALS
@@ -322,6 +338,11 @@ module adn_riscv_instr_launcher_tb;
       "TC_012": tc_012_clear_flush();
       "TC_013": tc_013_clear_while_output_stalled();
       "TC_014": tc_014_register_lock_release();
+      "TC_015": tc_015_same_rd_no_raw_ordering();
+      "TC_016": tc_016_async_reset_midstream();
+      "TC_017": tc_017_partial_lock_release();
+      "TC_018": tc_018_clear_while_full();
+      "TC_019": tc_019_sustained_throughput();
 
 
       "TC_ALL", "default": begin
@@ -339,6 +360,11 @@ module adn_riscv_instr_launcher_tb;
         tc_012_clear_flush();
         tc_013_clear_while_output_stalled();
         tc_014_register_lock_release();
+        tc_015_same_rd_no_raw_ordering();
+        tc_016_async_reset_midstream();
+        tc_017_partial_lock_release();
+        tc_018_clear_while_full();
+        tc_019_sustained_throughput();
       end
 
       default: begin
