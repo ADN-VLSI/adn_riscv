@@ -8,5 +8,6 @@ ${ADN_RISCV}/source/adn_riscv_instr_decoder.sv
 ${ADN_RISCV}/source/adn_riscv_instr_launcher.sv
 ${ADN_RISCV}/source/adn_riscv_instr_order_checker.sv
 ${ADN_RISCV}/source/adn_riscv_regfile.sv
+${ADN_RISCV}/source/adn_riscv_wb_mux.sv
 -i ${ADN_COMMON}/include
 -i ${ADN_RISCV}/include

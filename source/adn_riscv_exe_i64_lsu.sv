@@ -111,20 +111,20 @@ module adn_riscv_exe_i64_lsu
 
       SB, LB, LBU: begin
         wr_size = 0;
-        wr_sign = (op_i == LB);
+        wr_sign = (op_i != LBU);
         strb = 8'b0000_0001;
       end
 
       SH, LH, LHU: begin
         wr_size = 1;
-        wr_sign = (op_i == LH);
+        wr_sign = (op_i != LHU);
         strb = 8'b0000_0011;
       end
 
       SW, FSW, SC_W, AMOSWAP_W, AMOADD_W, AMOXOR_W, AMOAND_W,
       AMOOR_W, AMOMIN_W, AMOMAX_W, AMOMINU_W, AMOMAXU_W, LW, LWU: begin
         wr_size = 2;
-        wr_sign = (op_i == LW);
+        wr_sign = (op_i != LWU);
         strb = 8'b0000_1111;
       end
 
@@ -313,8 +313,7 @@ module adn_riscv_exe_i64_lsu
 
   always_comb begin
     logic [63:0] data_out;
-    data_out  = mem_rdata;
-    mem_rdata = mem_rdata >> (mem_fault_addr_o[2:0] * 8);
+    data_out  = mem_rdata >> (mem_fault_addr_o[2:0] * 8);
     case (wr_size_)
       0: data_out = data_out & 64'h0000_0000_0000_00FF;
       1: data_out = data_out & 64'h0000_0000_0000_FFFF;

@@ -24,8 +24,12 @@ See LICENSE file in the project root for full license information
 
 */
 
+`ifndef __GUARD_ADN_RISCV_TYPEDEF_SVH__
+`define __GUARD_ADN_RISCV_TYPEDEF_SVH__ 0
+
   // Macro to define a decoded instruction structure based on architecture parameters
   `define ADN_RISCV_T(__NM__, __CLOG2_NUM_REGS__, __XLEN__)                                        \
+                                                                                                   \
     typedef struct packed {                                                                        \
       rv_op_t                                 op;         /* Instruction opcode */                 \
       logic [     ``__CLOG2_NUM_REGS__``-1:0] rd;         /* Destination register index */         \
@@ -38,3 +42,13 @@ See LICENSE file in the project root for full license information
       logic                                   mem_op;     /* Memory operation flag */              \
       logic                                   blocking;   /* Blocking instruction flag */          \
     } ``__NM__``_decoded_instr_t;                                                                  \
+                                                                                                   \
+    typedef struct packed {                                                                        \
+      logic [``__CLOG2_NUM_REGS__``-1:0] addr;  /* Destination register index */                   \
+      logic [          ``__XLEN__``-1:0] data;  /* Destination register data */                    \
+      logic                        [1:0] size;  /* Destination register size */                    \
+      logic                              sign;  /* Destination register signedness */              \
+    } ``__NM__``_write_back_t;                                                                     \
+
+
+`endif
