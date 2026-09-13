@@ -4,3 +4,4 @@ ci_simulate adn_riscv_btb_tb TC_ALL 1000
 ci_simulate adn_riscv_instr_launcher_tb TC_ALL 1000
 ci_simulate adn_riscv_exe_i64_alu_tb TC_ALL 1000
 ci_simulate adn_riscv_exe_i64_lsu_tb TC_ALL 1000
+ci_simulate adn_riscv_wb_mux_tb TC_ALL 1000
