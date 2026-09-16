@@ -1,8 +1,10 @@
 /*
 
-@foez-bhai, write the purpose of this module in markdown format here. This is already in multi-line comment, so don't add any additional comment syntax.
+### Purpose
+This module implements the 64-bit Arithmetic Logic Unit (ALU) for the ADN-RISCV core. It performs integer arithmetic, logical operations, and word-level operations as defined by the RV64I instruction set architecture, including support for pipelined execution.
 
-@foez-bhai, describe the use case of this module in markdown format here. This is already in multi-line comment, so don't add any additional comment syntax.
+### Use Case
+This module serves as the primary execution unit for integer arithmetic and logical operations within the ADN-RISCV processor pipeline. It receives operands from the register file or immediate generator, performs the requested operation based on the decoded instruction, and passes the result through a pipeline stage to ensure timing closure and maintain throughput in the execution stage.
 
 #### RV64I register-immediate instructions
     `ADDI` `SLTI` `SLTIU` `XORI` `ORI` `ANDI`
@@ -42,10 +44,10 @@ See LICENSE file in the project root for full license information
 
 `include "adn_riscv_pkg.sv"
 
-// @foez-bhai, add comments to the parameters, ports
 module adn_riscv_exe_i64_alu
   import adn_riscv_pkg::*;
 #(
+    // Data width of the ALU, default is 64-bit for RV64I
     parameter int XLEN = 64
 ) (
 
@@ -53,82 +55,84 @@ module adn_riscv_exe_i64_alu
     // required for pipelining
     // ------------------------------------------------
 
-    // clock signal only used for the purpose of using pipeline inside
+    // Clock signal for the pipeline registers
     input logic clk_i,
-    // reset signal only used for the purpose of using pipeline inside
+    // Asynchronous reset signal, active low
     input logic arst_ni,
 
     // ------------------------------------------------
     // ALU operation control
     // ------------------------------------------------
 
-    // ALU operation control: selects the operations for ALU
+    // ALU operation control: selects the operation to be performed
     input rv_op_t alu_op_i,
 
     // ------------------------------------------------
     // Operands and destination register
     // ------------------------------------------------
 
-    // ALU operand a value
+    // ALU operand a value (rs1)
     input logic [XLEN-1:0] operand_a_i,
-    // ALU operand b value, or the sign extended immediate value
+    // ALU operand b value (rs2 or sign-extended immediate)
     input logic [XLEN-1:0] operand_b_i,
-    // index of the destination register
+    // Destination register index
     input logic [4:0] rd_addr_i,
 
     // ------------------------------------------------
     // Input handshake
     // ------------------------------------------------
 
-    // Input handshake
+    // Valid signal for input data
     input  logic valid_i,
-    // Input handshake
+    // Ready signal indicating ALU is ready to accept new data
     output logic ready_o,
 
     // ------------------------------------------------
     // ALU result
     // ------------------------------------------------
 
-    // ALU result
+    // Computed ALU result
     output logic [XLEN-1:0] result_o,
-    // index of the destination register
+    // Destination register index passed through the pipeline
     output logic [     4:0] rd_addr_o,
 
     // ------------------------------------------------
     // Output handshake
     // ------------------------------------------------
 
-    // Output handshake
+    // Valid signal for output data
     output logic valid_o,
-    // Output handshake
+    // Ready signal from the next stage
     input  logic ready_i
 
 );
 
-  // @foez-bhai, add comments to the functional blocks, signals, and submodules
-
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // SIGNALS
   //////////////////////////////////////////////////////////////////////////////////////////////////
-  // temp result storage
+  // Intermediate result storage for 64-bit and 32-bit operations
   logic [  XLEN-1:0] result_xlen;
   logic [      31:0] result_word;
 
-  logic              sub;  // decide if the selected instruction/s is subtractor
-  logic [  XLEN-1:0] addsub_result;  // result for add/sub
-  logic [  XLEN-1:0] result_comb;  // result from the always_comb alu
+  // Control signal to determine if the operation is a subtraction
+  logic              sub;  
+  // Result of the adder/subtractor block
+  logic [  XLEN-1:0] addsub_result;  
+  // Final combinational result before pipeline
+  logic [  XLEN-1:0] result_comb;  
 
-  logic [  XLEN-1:0] operand_b_addsub;  // holder for operand b based on sub
+  // Operand B modified for subtraction (two's complement)
+  logic [  XLEN-1:0] operand_b_addsub;  
 
-  // for pipeline:
-  //      here both pipe_data_in and pipe_data_out will hold addr along with the result
-  logic [XLEN+5-1:0] pipe_data_in;  // extra 5 bit to hold rd_addr_i
-  logic [XLEN+5-1:0] pipe_data_out;  // extra 5 bit to hold rd_addr_i
+  // Pipeline data bus: combines result and destination register address
+  logic [XLEN+5-1:0] pipe_data_in;  
+  logic [XLEN+5-1:0] pipe_data_out;  
 
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // ASSIGNMENTS
   //////////////////////////////////////////////////////////////////////////////////////////////////
+  // Logic to detect subtraction operations
   always_comb begin
     sub = '0;
     case (alu_op_i)
@@ -137,28 +141,19 @@ module adn_riscv_exe_i64_alu
     endcase
   end
 
-
+  // Adder/Subtractor functional block
   always_comb begin
     operand_b_addsub = sub ? (~operand_b_i) : operand_b_i;
     addsub_result = operand_a_i + operand_b_addsub + sub;
   end
 
+  // Main ALU operation functional block
   always_comb begin : operation
     result_xlen = '0;
     result_word = '0;
 
     case (alu_op_i)
       ADD, ADDI, SUB: result_xlen = addsub_result;
-      // RISCV Spec:
-      // The operand to be shifted is in rs1, and the shift amount is encoded in
-      //      the lower 6 bits of the I-immediate field for RV64I. In RV64I, only
-      //      the low 6 bits of rs2 are considered for the shift amount.
-      // ---------------------- My design choice -------------------------------------
-      // SLLI gets its shift amount from immediate. Here operand_b_i is supposed to get
-      // the immediate value so the lower 6 bit can work. SLTI and others are same.
-      // If the decoder is not producing operands this way, then an extra module can be
-      //      implemented that will do the immediate assignment to the operand_b based on the
-      //      instructions
       SLL, SLLI:      result_xlen = operand_a_i << operand_b_i[5:0];
       SLT, SLTI:      result_xlen = $signed(operand_a_i) < $signed(operand_b_i);
       SLTU, SLTIU:    result_xlen = operand_a_i < operand_b_i;
@@ -174,7 +169,7 @@ module adn_riscv_exe_i64_alu
     endcase
   end : operation
 
-  // result selection based on instruction type - normal vs word
+  // Result selection block: handles sign extension for word-level operations
   always_comb begin
     case (alu_op_i)
       ADDW, ADDIW, SUBW: result_comb = {{(XLEN - 32) {addsub_result[31]}}, addsub_result[31:0]};
@@ -183,16 +178,17 @@ module adn_riscv_exe_i64_alu
     endcase
   end
 
-  // input to the pipeline
+  // Prepare data for pipeline stage
   always_comb pipe_data_in = {rd_addr_i, result_comb};
 
-  // result extraction from the pipeline output
+  // Extract result and address from pipeline output
   always_comb result_o = pipe_data_out[XLEN-1:0];
-  always_comb rd_addr_o = pipe_data_out[XLEN+5-1:XLEN];  // extracting the addr
+  always_comb rd_addr_o = pipe_data_out[XLEN+5-1:XLEN];  
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // SUBMODULES
   //////////////////////////////////////////////////////////////////////////////////////////////////
+  // Pipeline stage submodule to ensure timing closure
   adn_common_pipeline #(
       .DATA_WIDTH($bits(pipe_data_in))
   ) u_i64_pipeline (
@@ -210,4 +206,3 @@ module adn_riscv_exe_i64_alu
   );
 
 endmodule
-
